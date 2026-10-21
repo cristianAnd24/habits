@@ -79,6 +79,11 @@ body{margin:0;min-height:100%;background:var(--bg);color:var(--lab);
   overscroll-behavior-y:none}
 body.locked{overflow:hidden}
 button,input{font:inherit;color:inherit;letter-spacing:inherit}
+/* Without this, two quick taps on one control (the page stepper especially)
+   register as iOS double-tap-to-zoom. "manipulation" drops only the
+   double-tap gesture; panning and pinch-to-zoom still work, which
+   user-scalable=no would have taken away. */
+button,input,select,textarea,a,label,[role="button"]{touch-action:manipulation}
 button{cursor:pointer;-webkit-appearance:none;appearance:none;border:0;background:none;padding:0}
 input{-webkit-appearance:none;appearance:none}
 :focus{outline:none}

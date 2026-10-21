@@ -295,7 +295,9 @@ button.cell:active,.tap:active{background:var(--f4)}
 /* ==========================================================================
    Heat calendar
    ========================================================================== */
+.heat-card{margin-top:10px}
 .heat-box{padding:13px 16px 15px}
+.heat-cap{font-size:13px;color:var(--lab2);margin-bottom:10px}
 .heat-dow,.heat{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
 .heat-dow{margin-bottom:7px}
 .heat-dow i{font-size:11px;font-weight:600;color:var(--lab3);text-align:center;font-style:normal}
@@ -501,7 +503,7 @@ button.cell:active,.tap:active{background:var(--f4)}
     <div class="shdr"><span class="t">Prayers</span><span class="x" id="prayCount"></span></div>
     <div class="card"><div class="prayers" id="prayers"></div></div>
 
-    <div class="shdr"><span class="t">Quran &amp; training</span></div>
+    <div class="shdr"><span class="t">Quran</span></div>
     <div class="card">
       <div class="cell"><span class="cl">Pages read</span>
         <div class="stepper">
@@ -512,9 +514,11 @@ button.cell:active,.tap:active{background:var(--f4)}
           </div>
         </div>
       </div>
-      <div class="cell"><span class="cl">Training</span>
-        <div class="seg" id="gym" role="group" aria-label="Training"><span class="thumb"></span><button data-v="rest">Rest</button><button data-v="upper">Upper</button><button data-v="lower">Lower</button></div>
-      </div>
+    </div>
+
+    <div class="shdr"><span class="t">Training</span></div>
+    <div class="card">
+      <div class="cell"><div class="seg wide" id="gym" role="group" aria-label="Training"><span class="thumb"></span><button data-v="rest">Rest</button><button data-v="upper">Upper</button><button data-v="lower">Lower</button></div></div>
     </div>
 
     <div class="shdr"><span class="t">Stayed clean</span></div>
@@ -594,19 +598,24 @@ button.cell:active,.tap:active{background:var(--f4)}
   <section id="v-stats" class="hidden">
     <div class="seg wide" id="range" role="group" aria-label="Range"><span class="thumb"></span><button data-r="7" aria-pressed="true">7D</button><button data-r="30">30D</button><button data-r="90">90D</button><button data-r="0">All</button></div>
     <p class="foot" id="rangeNote"></p>
-    <div class="shdr"><span class="t">Clean</span></div>
-    <div class="tiles" id="cleanStats"></div>
-    <div class="shdr"><span class="t">Training</span></div>
-    <div class="tiles" id="gymStats"></div>
-    <div class="shdr"><span class="t">Prayers &amp; Quran</span></div>
-    <div class="tiles" id="statGrid"></div>
-    <div class="shdr"><span class="t">Prayers</span><span class="x">Last 5 weeks</span></div>
-    <div class="card"><div class="heat-box">
+    <div class="shdr"><span class="t">Prayers</span></div>
+    <div class="tiles" id="prayerStats"></div>
+    <div class="card heat-card"><div class="heat-box">
+      <div class="heat-cap">Last 5 weeks</div>
       <div class="heat-dow" id="dow1"></div><div class="heat" id="heatPray"></div>
       <div class="legend"><span>Less</span><i></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>More</span></div>
     </div></div>
-    <div class="shdr"><span class="t">Clean days</span><span class="x">Last 5 weeks</span></div>
-    <div class="card"><div class="heat-box">
+
+    <div class="shdr"><span class="t">Quran</span></div>
+    <div class="tiles" id="quranStats"></div>
+
+    <div class="shdr"><span class="t">Training</span></div>
+    <div class="tiles" id="gymStats"></div>
+
+    <div class="shdr"><span class="t">Stayed clean</span></div>
+    <div class="tiles" id="cleanStats"></div>
+    <div class="card heat-card"><div class="heat-box">
+      <div class="heat-cap">Last 5 weeks</div>
       <div class="heat-dow" id="dow2"></div><div class="heat c" id="heatClean"></div>
       <div class="legend c"><i class="l4"></i><span>Clean</span><i style="background:var(--red);opacity:.85"></i><span>Not clean</span><i></i><span>No answer</span></div>
     </div></div>
@@ -1377,11 +1386,11 @@ function renderStats(){
   const ks=Object.keys(S.days).sort();
   const since=ks.length?Math.round((fromKey(todayKey())-fromKey(ks[0]))/864e5)+1:1;
   const n=Math.max(1,range?Math.min(range,since):since);
-  let pr=0,q=0,up=0,lo=0,rest=0,clean=0,notClean=0;
+  let pr=0,q=0,qDays=0,up=0,lo=0,rest=0,clean=0,notClean=0;
   for(let i=0;i<n;i++){
     const d=day(keyOf(addDays(new Date(),-i)));
     pr+=d.prayers.filter(Boolean).length;
-    q+=+d.quran||0;
+    const pages=+d.quran||0;q+=pages;if(pages>0)qDays++;
     if(d.gym==="upper")up++;else if(d.gym==="lower")lo++;else if(d.gym==="rest")rest++;
     if(d.clean===true)clean++;else if(d.clean===false)notClean++;
   }
@@ -1391,21 +1400,26 @@ function renderStats(){
   const tile=([l,v,s])=>`<div class="tile"><span>${esc(l)}</span><b>${esc(v)}</b>${s?`<small>${esc(s)}</small>`:""}</div>`;
   $("rangeNote").textContent=range&&n<range?`Only ${dayCount(n)} of history so far.`
     :range?`Last ${dayCount(n)}.`:`All ${dayCount(n)} since you started.`;
-  $("cleanStats").innerHTML=[
-    ["Clean days",pct(clean,n),`${clean} of ${n}`],
-    ["Answered",pct(clean+notClean,n),`${n-clean-notClean} blank`],
-    ["Current streak",dayCount(c)],
-    ["Longest streak",dayCount(r.best)]
+  /* Same order as the Today tab: prayers, Quran, training, stayed clean. */
+  $("prayerStats").innerHTML=[
+    ["Prayers per day",String(r1(pr/n)),"out of 5"],
+    ["Completion",pct(pr,n*5),`${pr} of ${n*5}`]
+  ].map(tile).join("");
+  $("quranStats").innerHTML=[
+    ["Pages read",String(q),`${r1(q/n)} per day`],
+    ["Days read",pct(qDays,n),`${qDays} of ${n}`]
   ].map(tile).join("");
   $("gymStats").innerHTML=[
     ["Training days",pct(gym,n),`${gym} of ${n}`],
     ["Upper / lower",`${up} / ${lo}`,gym?`${pct(up,gym)} / ${pct(lo,gym)}`:"no sessions yet"],
     ["Rest days",String(rest)],
-    ["Average streak",dayCount(r1(r.avg))]
+    ["Not logged",String(Math.max(0,n-gym-rest))]
   ].map(tile).join("");
-  $("statGrid").innerHTML=[
-    ["Prayers per day",String(r1(pr/n)),"out of 5"],
-    ["Quran pages",String(q),`${r1(q/n)} per day`]
+  $("cleanStats").innerHTML=[
+    ["Clean days",pct(clean,n),`${clean} of ${n}`],
+    ["Answered",pct(clean+notClean,n),`${n-clean-notClean} blank`],
+    ["Current streak",dayCount(c)],
+    ["Longest streak",dayCount(r.best),r.runs>1?`avg ${dayCount(r1(r.avg))}`:""]
   ].map(tile).join("");
 
   /* Weekday-aligned 5-week calendar, Sunday first, ending this week. */

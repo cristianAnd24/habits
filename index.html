@@ -272,6 +272,7 @@ button.cell:active,.tap:active{background:var(--f4)}
   transition:transform .12s,opacity .12s}
 .btn:active:not(:disabled){transform:scale(.98);opacity:.85}
 .btn:disabled{background:var(--f3);color:var(--lab3);cursor:default}
+.btn.ghost{background:var(--f3);color:var(--tint);margin-top:9px}
 .mini{width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;
   color:var(--tint);border-radius:50%;transition:background .15s}
 .mini:active{background:var(--f4)}
@@ -1532,6 +1533,62 @@ function importBackup(){
   inp.click();
 }
 
+const fmtBytes=b=>b==null?"Unknown":b<1024?b+" bytes":b<1048576?(b/1024).toFixed(1)+" KB":(b/1048576).toFixed(1)+" MB";
+
+/* What iOS will actually tell us, shown plainly rather than promised. */
+async function openDataSheet(){
+  let persisted=null;
+  try{
+    if(navigator.storage&&navigator.storage.persisted)persisted=await navigator.storage.persisted();
+  }catch(e){}
+  /* The log itself, not storage.estimate() — that counts the cached app
+     shell too and would read as ~90KB for a 1KB log. */
+  let bytes=null;
+  try{const raw=localStorage.getItem(LS);bytes=raw?new Blob([raw]).size:0}catch(e){}
+  const installed=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+  const d=daysSinceBackup();
+  sheet({
+    title:"Data",left:"Close",
+    build:(body,root)=>{
+      const rows=[
+        ["Kept on this device",persisted===true?"Protected":persisted===false?"Best effort":"Unknown"],
+        ["Opened from home screen",installed?"Yes":"No"],
+        ["Days logged",String(Object.keys(S.days).length)],
+        ["Backup size",fmtBytes(bytes)],
+        ["Last backup",d===null?"Never":d===0?"Today":d===1?"Yesterday":dayCount(d)+" ago"]
+      ];
+      const card=el("div","card");
+      card.innerHTML=rows.map(([k,v])=>
+        `<div class="cell"><span class="cl">${esc(k)}</span><span class="cv">${esc(v)}</span></div>`).join("");
+      body.appendChild(card);
+      body.appendChild(el("p","foot",
+        "Your log lives in this device's browser storage. iOS can still clear it if you delete the "+
+        "home-screen icon, clear Safari's website data, or the phone runs very low on space. "+
+        "A backup saved to Files or iCloud is the only copy that survives all three."));
+      const ex=el("button","btn","Export backup");
+      ex.onclick=()=>{exportBackup();root.close()};
+      const im=el("button","btn ghost","Restore from a file");
+      im.onclick=()=>{importBackup();root.close()};
+      body.append(ex,im);
+    }
+  });
+}
+
+/* Once per launch, and only when there is something to lose. */
+async function maybeNudgeBackup(){
+  if(!backupDue())return;
+  try{if(sessionStorage.getItem("nudged"))return;sessionStorage.setItem("nudged","1")}catch(e){}
+  const d=daysSinceBackup();
+  const go=await alertBox({
+    title:"Back up your data?",
+    message:d===null
+      ?"There is no saved copy yet. If iOS clears this app's storage, the log goes with it."
+      :`It has been ${dayCount(d)} since your last backup.`,
+    actions:[{label:"Not now",style:"cancel",value:false},{label:"Back up",value:true}]
+  });
+  if(go)exportBackup();
+}
+
 /* ==========================================================================
    Appearance + data menu
    ========================================================================== */
@@ -1552,8 +1609,8 @@ $("moreBtn").addEventListener("click",()=>{
     {title:backupLabel()},
     {label:"Export backup",icon:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15.5V3.4M7.8 7.6 12 3.4l4.2 4.2M4.2 14.4v4.4a1.8 1.8 0 0 0 1.8 1.8h12a1.8 1.8 0 0 0 1.8-1.8v-4.4"/></svg>',
      onSelect:exportBackup},
-    {label:"Restore from a file",icon:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.4v12.1M7.8 11.3 12 15.5l4.2-4.2M4.2 14.4v4.4a1.8 1.8 0 0 0 1.8 1.8h12a1.8 1.8 0 0 0 1.8-1.8v-4.4"/></svg>',
-     onSelect:importBackup}
+    {label:"Data & storage",icon:'<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><ellipse cx="12" cy="5.6" rx="7.6" ry="3.1"/><path d="M4.4 5.6v12.8c0 1.7 3.4 3.1 7.6 3.1s7.6-1.4 7.6-3.1V5.6M4.4 12c0 1.7 3.4 3.1 7.6 3.1s7.6-1.4 7.6-3.1"/></svg>',
+     onSelect:openDataSheet}
   ]);
 });
 
@@ -1617,6 +1674,7 @@ askPersistence();
 addEventListener("pointerdown",function once(){
   removeEventListener("pointerdown",once);askPersistence();
 },{passive:true});
+setTimeout(maybeNudgeBackup,1400);
 </script>
 </body>
 </html>

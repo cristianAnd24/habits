@@ -281,6 +281,7 @@ button.cell:active,.tap:active{background:var(--f4)}
 .btn:active:not(:disabled){transform:scale(.98);opacity:.85}
 .btn:disabled{background:var(--f3);color:var(--lab3);cursor:default}
 .btn.ghost{background:var(--f3);color:var(--tint);margin-top:9px}
+.btn.danger{background:var(--f3);color:var(--red);margin-top:9px}
 .mini{width:28px;height:28px;flex:none;display:flex;align-items:center;justify-content:center;
   color:var(--tint);border-radius:50%;transition:background .15s}
 .mini:active{background:var(--f4)}
@@ -699,6 +700,8 @@ const short=k=>fmt(k,{month:"short",day:"numeric",year:k.slice(0,4)===todayKey()
 const MONTHS=Array.from({length:12},(_,i)=>new Date(2021,i,1).toLocaleDateString(undefined,{month:"long"}));
 const DOW=Array.from({length:7},(_,i)=>new Date(2021,7,1+i).toLocaleDateString(undefined,{weekday:"narrow"}));
 const CHECK='<svg class="ck-i" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8 9.3 17.6 19.5 6.6"/></svg>';
+const CHEV='<svg class="chev" width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5 7 7.5l-5.5 6"/></svg>';
+const CHEV_CIRCLE='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 13.3-4.3-4.3a1.1 1.1 0 0 1 1.6-1.6L12 12.1l2.7-2.7a1.1 1.1 0 0 1 1.6 1.6z"/></svg>';
 const clampNum=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
 
 let cur=todayKey();
@@ -860,7 +863,9 @@ function sheet({title,left="Cancel",right,onRight,build}){
   const lb=el("button","l",esc(left));lb.onclick=()=>root.close();
   const tt=el("b",null,esc(title||""));
   const rb=el("button","r",esc(right||""));
-  if(right)rb.onclick=()=>{onRight&&onRight();root.close()};else rb.style.visibility="hidden";
+  /* onRight returning false keeps the sheet open, so validation can refuse. */
+  if(right)rb.onclick=()=>{if(onRight&&onRight()===false)return;root.close()};
+  else rb.style.visibility="hidden";
   bar.append(lb,tt,rb);
   const body=el("div","sheet-body");
   s.append(zone,bar,body);
@@ -1083,6 +1088,8 @@ function swipeable(row){
       if(axis===null){
         if(Math.abs(dx)>8&&Math.abs(dx)>Math.abs(dy)){
           axis="x";if(openRow&&openRow!==row)closeRow();
+          /* Marks the row so the click ending this swipe is ignored. */
+          row.dataset.swiping="1";
           inner.style.transition="none";
           try{row.setPointerCapture(ev.pointerId)}catch(err){}
         }else if(Math.abs(dy)>8){stop();return}
@@ -1098,6 +1105,8 @@ function swipeable(row){
         inner.style.transition="";
         if(v<-SW/2){inner.style.transform=`translateX(${-SW}px)`;openRow=row;haptic()}
         else{inner.style.transform="";if(openRow===row)openRow=null}
+        /* Cleared after the click that follows this pointerup has been seen. */
+        setTimeout(()=>{delete row.dataset.swiping},0);
       }
       stop();
     };
@@ -1312,8 +1321,8 @@ function renderGym(){
   }
   const bl=Object.values(best).sort((a,b)=>a.ex.localeCompare(b.ex));
   $("bestList").innerHTML=bl.length?bl.map(p=>
-    `<div class="cell"><span class="cl">${esc(p.ex)}<br><span class="sub">${esc(short(p.date))}</span></span>
-     <span class="cv" style="color:var(--lab);font-weight:500">${p.w} ${esc(p.u)} × ${p.r}</span></div>`).join("")
+    `<button class="cell" data-edit="${esc(p.id)}"><span class="cl">${esc(p.ex)}<br><span class="sub">${esc(short(p.date))}</span></span>
+     <span class="cv" style="color:var(--lab);font-weight:500">${p.w} ${esc(p.u)} × ${p.r}</span>${CHEV}</button>`).join("")
     :`<p class="empty">Save your first PR above.</p>`;
 
   const names=exNames();
@@ -1323,12 +1332,12 @@ function renderGym(){
   $("prList").innerHTML=list.length?list.map(p=>
     `<div class="sw" data-id="${esc(p.id)}">
       <button class="sw-act" data-del="${esc(p.id)}">Delete</button>
-      <div class="sw-in"><div class="cell"><span class="cl">${esc(p.ex)}<br><span class="sub">${esc(short(p.date))}</span></span>
-      <span class="cv">${p.w} ${esc(p.u)} × ${p.r}</span></div></div>
+      <div class="sw-in"><button class="cell" data-edit="${esc(p.id)}"><span class="cl">${esc(p.ex)}<br><span class="sub">${esc(short(p.date))}</span></span>
+      <span class="cv">${p.w} ${esc(p.u)} × ${p.r}</span>${CHEV}</button></div>
     </div>`).join("")
     :`<p class="empty">${prs.length?"Nothing logged for that exercise.":"No entries yet."}</p>`;
   $("prList").querySelectorAll(".sw").forEach(swipeable);
-  $("histFoot").textContent=list.length?"Swipe a row left to delete it.":"";
+  $("histFoot").textContent=list.length?"Tap a row to edit it, or swipe left to delete.":"";
   openRow=null;
 }
 $("unit").addEventListener("click",e=>{
@@ -1365,6 +1374,94 @@ $("histBtn").addEventListener("click",()=>{
   }));
   menu($("histBtn"),items);
 });
+/* Edit one saved PR, with delete in the same place — so the swipe gesture is a
+   shortcut rather than the only route to it. */
+function openPrEditor(id){
+  const p=S.meta.prs.find(x=>x.id===id);
+  if(!p)return;
+  const draft={u:p.u,date:p.date};
+  const card=el("div","card");
+  card.innerHTML=
+    `<div class="cell"><span class="cl" style="flex:0 0 auto">Exercise</span>
+       <input class="cin" data-f="ex" placeholder="Bench press" autocomplete="off" aria-label="Exercise">
+       <button class="mini" data-a="exmenu" aria-label="Choose a previous exercise">${CHEV_CIRCLE}</button></div>
+     <div class="cell"><span class="cl" style="flex:0 0 auto">Weight</span>
+       <input class="cin" data-f="w" type="number" inputmode="decimal" min="0" step="any" aria-label="Weight">
+       <span class="unit" data-a="unitlabel"></span></div>
+     <div class="cell"><span class="cl" style="flex:0 0 auto">Reps</span>
+       <input class="cin" data-f="r" type="number" inputmode="numeric" min="1" aria-label="Reps">
+       <span class="unit"></span></div>
+     <button class="cell" data-a="date"><span class="cl">Date</span><span class="cv" data-a="datelabel"></span>${CHEV}</button>
+     <div class="cell"><span class="cl">Unit</span>
+       <div class="seg" data-a="unit" style="width:118px" role="group" aria-label="Unit">
+         <span class="thumb"></span><button data-v="lb">lb</button><button data-v="kg">kg</button></div></div>`;
+  const f=s=>card.querySelector(`[data-f="${s}"]`);
+  const a=s=>card.querySelector(`[data-a="${s}"]`);
+  f("ex").value=p.ex;f("w").value=String(p.w);f("r").value=String(p.r);
+
+  const paintUnit=()=>{
+    for(const b of a("unit").querySelectorAll("button"))
+      b.setAttribute("aria-pressed",String(b.dataset.v===draft.u));
+    paintSeg(a("unit"));
+    a("unitlabel").textContent=draft.u;
+  };
+  const paintDate=()=>{
+    a("datelabel").textContent=draft.date===todayKey()?"Today":
+      draft.date===keyOf(addDays(new Date(),-1))?"Yesterday":
+      fmt(draft.date,{weekday:"short",month:"short",day:"numeric",year:"numeric"});
+  };
+
+  const root=sheet({
+    title:"Edit PR",left:"Cancel",right:"Save",
+    onRight:()=>{
+      const ex=f("ex").value.trim(),w=+f("w").value,r=Math.round(+f("r").value);
+      if(!ex)    {hud("Add an exercise",WARN);f("ex").focus();return false}
+      if(!(w>0)) {hud("Add a weight",WARN);f("w").focus();return false}
+      if(!(r>0)) {hud("Add some reps",WARN);f("r").focus();return false}
+      const t=S.meta.prs.find(x=>x.id===id);
+      if(!t){hud("That entry is gone",WARN);return true}
+      t.ex=ex;t.w=Math.round(w*100)/100;t.r=r;t.u=draft.u;t.date=draft.date;
+      schedule("meta");renderGym();haptic(10);hud("PR updated");
+      return true;
+    },
+    build:(body,r)=>{
+      body.appendChild(card);
+      const del=el("button","btn danger","Delete PR");
+      del.onclick=async()=>{
+        const ok=await confirmBox("Delete this entry?",
+          `${p.ex} · ${p.w} ${p.u} × ${p.r} on ${short(p.date)}`);
+        if(!ok)return;
+        S.meta.prs=S.meta.prs.filter(x=>x.id!==id);
+        schedule("meta");renderGym();r.close();hud("Deleted");
+      };
+      body.appendChild(del);
+      paintUnit();paintDate();
+
+      a("unit").addEventListener("click",e=>{
+        const b=e.target.closest("button");if(!b)return;
+        draft.u=b.dataset.v;haptic();paintUnit();
+      });
+      a("date").addEventListener("click",async()=>{
+        const k=await pickDate({
+          value:draft.date,min:keyOf(addDays(new Date(),-365*10)),max:todayKey(),title:"Date of the PR"
+        });
+        if(k){draft.date=k;paintDate()}
+      });
+      a("exmenu").addEventListener("click",()=>{
+        const names=exNames(),val=f("ex").value.trim().toLowerCase();
+        const items=names.slice(0,10).map(n=>({
+          label:n,selected:n.toLowerCase()===val,onSelect:()=>{f("ex").value=n}
+        }));
+        if(!items.length)items.push({title:"No saved exercises yet"});
+        menu(a("exmenu"),items);
+      });
+      card.querySelectorAll("input").forEach(i=>i.addEventListener("keydown",e=>{
+        if(e.key==="Enter"){e.preventDefault();root.querySelector(".sheet-bar .r").click()}
+      }));
+    }
+  });
+}
+
 function savePr(){
   const ex=$("prEx").value.trim(),w=+$("prW").value,r=Math.round(+$("prR").value);
   if(!ex)       {hud("Add an exercise",WARN);$("prEx").focus();return}
@@ -1384,13 +1481,25 @@ $("addPr").addEventListener("click",savePr);
   if(e.key==="Enter"){e.preventDefault();savePr()}
 }));
 $("prList").addEventListener("click",async e=>{
-  const b=e.target.closest("button[data-del]");if(!b)return;
-  const p=S.meta.prs.find(x=>x.id===b.dataset.del);if(!p)return;
-  const ok=await confirmBox("Delete this entry?",`${p.ex} · ${p.w} ${p.u} × ${p.r} on ${short(p.date)}`);
-  closeRow();
-  if(!ok){renderGym();return}
-  S.meta.prs=S.meta.prs.filter(x=>x.id!==p.id);
-  schedule("meta");renderGym();hud("Deleted");
+  const b=e.target.closest("button[data-del]");
+  if(b){
+    const p=S.meta.prs.find(x=>x.id===b.dataset.del);if(!p)return;
+    const ok=await confirmBox("Delete this entry?",`${p.ex} · ${p.w} ${p.u} × ${p.r} on ${short(p.date)}`);
+    closeRow();
+    if(!ok){renderGym();return}
+    S.meta.prs=S.meta.prs.filter(x=>x.id!==p.id);
+    schedule("meta");renderGym();hud("Deleted");
+    return;
+  }
+  const ed=e.target.closest("button[data-edit]");if(!ed)return;
+  const row=ed.closest(".sw");
+  if(row&&row.dataset.swiping)return;      /* the click that ended a swipe */
+  if(openRow===row){closeRow();return}     /* a revealed row closes instead */
+  openPrEditor(ed.dataset.edit);
+});
+$("bestList").addEventListener("click",e=>{
+  const ed=e.target.closest("button[data-edit]");
+  if(ed)openPrEditor(ed.dataset.edit);
 });
 
 /* ==========================================================================

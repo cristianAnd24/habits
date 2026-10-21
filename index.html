@@ -134,6 +134,9 @@ main{max-width:560px;margin:0 auto;
   text-transform:none;letter-spacing:-.01em;padding:2px 0}
 .shdr button.x:active{opacity:.4}
 .foot{font-size:13px;line-height:1.35;color:var(--lab2);margin:7px 20px 0}
+.note{font-size:13px;line-height:1.42;color:var(--lab);background:var(--gold-weak);
+  border-radius:10px;padding:12px 14px;margin:12px 0 0}
+.note b{font-weight:600}
 .card{background:var(--card);border-radius:12px;overflow:hidden}
 .cell{display:flex;align-items:center;gap:12px;min-height:46px;padding:9px 16px;
   position:relative;width:100%;text-align:left}
@@ -680,6 +683,12 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"
 const dayCount=n=>`${n} ${n===1?"day":"days"}`;
 const el=(tag,cls,html)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(html!=null)n.innerHTML=html;return n};
 const haptic=(ms=7)=>{try{navigator.vibrate&&navigator.vibrate(ms)}catch(e){}};
+/* iPadOS reports itself as MacIntel, hence the touch-point check.
+   Evaluated on call, not at load, so it stays checkable. */
+const isIOS=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||
+  (navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+/* True only for a real installed launch, whichever browser created the icon. */
+const isInstalled=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 const fmt=(k,o)=>fromKey(k).toLocaleDateString(undefined,o);
 const short=k=>fmt(k,{month:"short",day:"numeric",year:k.slice(0,4)===todayKey().slice(0,4)?undefined:"numeric"});
 const MONTHS=Array.from({length:12},(_,i)=>new Date(2021,i,1).toLocaleDateString(undefined,{month:"long"}));
@@ -1545,7 +1554,7 @@ async function openDataSheet(){
      shell too and would read as ~90KB for a 1KB log. */
   let bytes=null;
   try{const raw=localStorage.getItem(LS);bytes=raw?new Blob([raw]).size:0}catch(e){}
-  const installed=matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+  const installed=isInstalled();
   const d=daysSinceBackup();
   sheet({
     title:"Data",left:"Close",
@@ -1565,6 +1574,14 @@ async function openDataSheet(){
         "Your log lives in this device's browser storage. iOS can still clear it if you delete the "+
         "home-screen icon, clear Safari's website data, or the phone runs very low on space. "+
         "A backup saved to Files or iCloud is the only copy that survives all three."));
+      /* An icon that merely reopens a browser tab leaves the data on the
+         7-day eviction clock, so say so rather than just reporting "No". */
+      if(isIOS()&&!installed)body.appendChild(el("div","note",
+        "<b>This opened in a browser tab, not as an installed app.</b> On iOS a tab's storage can be "+
+        "cleared after about a week without opening it; an installed app is not on that clock. "+
+        "To install it: open this page in <b>Safari</b>, tap Share, then Add to Home Screen, and "+
+        "launch it from the icon. Storage does not carry across, so export a backup first and "+
+        "restore it once installed."));
       const ex=el("button","btn","Export backup");
       ex.onclick=()=>{exportBackup();root.close()};
       const im=el("button","btn ghost","Restore from a file");

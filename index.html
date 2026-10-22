@@ -93,7 +93,14 @@ button,input,select,textarea,a,label,[role="button"]{touch-action:manipulation}
 button{cursor:pointer;-webkit-appearance:none;appearance:none;border:0;background:none;padding:0}
 input{-webkit-appearance:none;appearance:none}
 :focus{outline:none}
-:focus-visible{outline:2.5px solid var(--tint);outline-offset:2px;border-radius:4px}
+/* No border-radius here: an outline already follows the element's own corners,
+   and setting one reshapes whatever is focused — it was squaring off the round
+   date arrows. */
+:focus-visible{outline:2.5px solid var(--tint);outline-offset:2px}
+/* Rows in these float flush with the container's edge, so an outward ring spills
+   past the rounded corner. Draw it inward instead. */
+.alert :focus-visible,.menu :focus-visible{outline-offset:-3px}
+.alert:focus,.alert:focus-visible{outline:none}
 input[type=number]{-moz-appearance:textfield;appearance:textfield}
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
@@ -898,6 +905,9 @@ function alertBox({title,message,actions}){
     const root=overlay("alert-ov");
     const back=el("div","ov-back");
     const box=el("div","alert");
+    box.setAttribute("role","alertdialog");
+    box.setAttribute("aria-modal","true");
+    box.tabIndex=-1;
     box.appendChild(el("div","alert-head",
       (title?`<b>${esc(title)}</b>`:"")+(message?`<p>${esc(message)}</p>`:"")));
     const acts=el("div","alert-acts"+(actions.length>2?" stack":""));
@@ -909,7 +919,10 @@ function alertBox({title,message,actions}){
     box.appendChild(acts);
     back.onclick=()=>{root.close();res(null)};
     root.append(back,box);root.show();
-    const f=acts.querySelector(".alert-btn");if(f)f.focus();
+    /* Focus the dialog, not a button. Focusing an action made iOS paint a focus
+       ring on it for someone who only ever tapped; this still moves focus into
+       the dialog for keyboard and screen-reader users, who then Tab to a button. */
+    box.focus({preventScroll:true});
   });
 }
 const confirmBox=(title,message,label="Delete",destructive=true)=>alertBox({

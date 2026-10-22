@@ -1463,7 +1463,7 @@ function renderGym(){
   }
   const bl=Object.values(best).sort((a,b)=>a.ex.localeCompare(b.ex));
   $("bestList").innerHTML=bl.length?bl.map(p=>
-    `<button class="cell" data-edit="${esc(p.id)}"><span class="cl">${esc(p.ex)}<span class="pr">PR</span><br><span class="sub">${esc(short(p.date))}</span></span>
+    `<button class="cell" data-edit="${esc(p.id)}"><span class="cl">${esc(p.ex)}<br><span class="sub">${esc(short(p.date))}</span></span>
      <span class="cv" style="color:var(--lab);font-weight:500">${p.w} ${esc(p.u)} × ${p.r}</span>${CHEV}</button>`).join("")
     :`<p class="empty">Save your first lift above.</p>`;
 
@@ -1474,7 +1474,7 @@ function renderGym(){
   $("prList").innerHTML=list.length?list.map(p=>
     `<div class="sw" data-id="${esc(p.id)}">
       <button class="sw-act" data-del="${esc(p.id)}">Delete</button>
-      <div class="sw-in"><button class="cell" data-edit="${esc(p.id)}"><span class="cl">${esc(p.ex)}<br><span class="sub">${esc(short(p.date))}</span></span>
+      <div class="sw-in"><button class="cell" data-edit="${esc(p.id)}"><span class="cl">${esc(p.ex)}${best[p.ex.toLowerCase()]===p?'<span class="pr">PR</span>':""}<br><span class="sub">${esc(short(p.date))}</span></span>
       <span class="cv">${p.w} ${esc(p.u)} × ${p.r}</span>${CHEV}</button></div>
     </div>`).join("")
     :`<p class="empty">${prs.length?"Nothing logged for that exercise.":"No entries yet."}</p>`;

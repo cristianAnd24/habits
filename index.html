@@ -25,7 +25,7 @@
   --sep:rgba(60,60,67,.29);
   --tint:#5856d6; --tint-weak:rgba(88,86,214,.12); --on-tint:#ffffff;
   --gold:#ff9500; --gold-weak:rgba(255,149,0,.12);
-  --red:#ff3b30; --green:#34c759; --brown:#ac7f5e; --purple:#af52de;
+  --red:#ff3b30; --green:#34c759; --brown:#ac7f5e; --purple:#af52de; --pink:#ff2d55;
   --h1:rgba(255,149,0,.26); --h2:rgba(255,149,0,.5); --h3:rgba(255,149,0,.74); --h4:#ff9500;
   --pop:0 10px 34px rgba(0,0,0,.14),0 1px 3px rgba(0,0,0,.1);
   --lift:0 -14px 50px rgba(0,0,0,.18);
@@ -45,7 +45,7 @@
   --sep:rgba(84,84,88,.65);
   --tint:#5e5ce6; --tint-weak:rgba(94,92,230,.22); --on-tint:#ffffff;
   --gold:#ff9f0a; --gold-weak:rgba(255,159,10,.18);
-  --red:#ff453a; --green:#30d158; --brown:#b78a66; --purple:#bf5af2;
+  --red:#ff453a; --green:#30d158; --brown:#b78a66; --purple:#bf5af2; --pink:#ff375f;
   --h1:rgba(255,159,10,.28); --h2:rgba(255,159,10,.52); --h3:rgba(255,159,10,.76); --h4:#ff9f0a;
   --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
   --pop:0 10px 34px rgba(0,0,0,.5); --lift:0 -14px 50px rgba(0,0,0,.6);
@@ -59,7 +59,7 @@
   --sep:rgba(84,84,88,.65);
   --tint:#5e5ce6; --tint-weak:rgba(94,92,230,.22); --on-tint:#ffffff;
   --gold:#ff9f0a; --gold-weak:rgba(255,159,10,.18);
-  --red:#ff453a; --green:#30d158; --brown:#b78a66; --purple:#bf5af2;
+  --red:#ff453a; --green:#30d158; --brown:#b78a66; --purple:#bf5af2; --pink:#ff375f;
   --h1:rgba(255,159,10,.28); --h2:rgba(255,159,10,.52); --h3:rgba(255,159,10,.76); --h4:#ff9f0a;
   --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
   --pop:0 10px 34px rgba(0,0,0,.5); --lift:0 -14px 50px rgba(0,0,0,.6);
@@ -723,7 +723,8 @@ const GLYPH={
   cup:'<path d="M4.6 7.4h11.2v6.2a4.4 4.4 0 0 1-4.4 4.4H9a4.4 4.4 0 0 1-4.4-4.4z"/><path d="M16 9.2h1.8a2.4 2.4 0 0 1 0 4.8H16" fill="none" stroke="#fff" stroke-width="1.7"/><path d="M4 19.8h12.4" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>',
   book:'<path d="M11.2 6.3C9.3 5 6.7 4.5 3.9 5a.9.9 0 0 0-.7.9v11.4a.9.9 0 0 0 1.1.9c2.5-.4 4.8 0 6.5 1.2a.9.9 0 0 0 .4.2zm1.6 0v14.3a.9.9 0 0 0 .4-.2c1.7-1.2 4-1.6 6.5-1.2a.9.9 0 0 0 1.1-.9V5.9a.9.9 0 0 0-.7-.9c-2.8-.5-5.4 0-7.3 1.3"/>',
   dumbbell:'<rect x="5" y="5.4" width="3" height="13.2" rx="1.4"/><rect x="16" y="5.4" width="3" height="13.2" rx="1.4"/><rect x="2" y="8.6" width="2.4" height="6.8" rx="1.2"/><rect x="19.6" y="8.6" width="2.4" height="6.8" rx="1.2"/><rect x="7.2" y="10.7" width="9.6" height="2.6" rx="1"/>',
-  note:'<path d="M19.4 3.2a.9.9 0 0 0-1.1-.9l-8 1.8a.9.9 0 0 0-.7.9v9.3a3.4 3.4 0 1 0 1.8 3V8.4l6.2-1.4v4.6a3.4 3.4 0 1 0 1.8 3z"/>'
+  note:'<path d="M19.4 3.2a.9.9 0 0 0-1.1-.9l-8 1.8a.9.9 0 0 0-.7.9v9.3a3.4 3.4 0 1 0 1.8 3V8.4l6.2-1.4v4.6a3.4 3.4 0 1 0 1.8 3z"/>',
+  camera:'<path d="M8.4 3.1h7.2a5.3 5.3 0 0 1 5.3 5.3v7.2a5.3 5.3 0 0 1-5.3 5.3H8.4a5.3 5.3 0 0 1-5.3-5.3V8.4a5.3 5.3 0 0 1 5.3-5.3m0 2A3.3 3.3 0 0 0 5.1 8.4v7.2a3.3 3.3 0 0 0 3.3 3.3h7.2a3.3 3.3 0 0 0 3.3-3.3V8.4a3.3 3.3 0 0 0-3.3-3.3z"/><path d="M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9m0 2a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5"/><circle cx="16.9" cy="7.1" r="1.15"/>'
 };
 const icon=(name,tone,size)=>
   `<span class="ico" style="background:var(--${tone})${size?`;width:${size}px;height:${size}px;border-radius:${Math.round(size/4.1)}px`:""}">`+
@@ -740,8 +741,13 @@ let cur=todayKey();
 const TRACKED=[
   {key:"clean",   icon:"shield",tone:"tint", title:"Stayed clean",    label:"Slips today", days:"Clean days",     perDay:"Slips per day"},
   {key:"weed",    icon:"leaf",  tone:"green",title:"Stayed off weed", label:"Times today", days:"Weed-free days", perDay:"Times per day"},
+  /* Stored in minutes so half hours stay whole numbers; shown as hours. */
+  {key:"instagram",icon:"camera",tone:"pink",title:"Instagram",      label:"Hours today",  days:"Days off it",      perDay:"Hours per day",
+   step:30, max:24*60, fmt:m=>m?(Math.round(m/60*10)/10)+"h":"0",
+   adds:[{d:30,text:".5",label:"half an hour"},{d:60,text:"1",label:"an hour"}],
+   note:"Counted in half hours."},
   {key:"caffeine",icon:"cup",   tone:"brown",title:"Caffeine",        label:"Units today",  days:"Caffeine-free days",perDay:"Caffeine per day",
-   adds:[{d:1,label:"a coffee"},{d:2,label:"an energy drink"}],
+   adds:[{d:1,text:"1",label:"a coffee"},{d:2,text:"2",label:"an energy drink"}],
    note:"A coffee counts as 1, an energy drink as 2."},
   /* Still a count underneath — 0 or 1 — so streaks, stats and the heat map need
      no special case; only the control and the second stat tile differ. */
@@ -750,6 +756,11 @@ const TRACKED=[
 ];
 const ADD_ONE=[{d:1,label:"one"}];
 const MAX_COUNT=99;
+const BY_KEY={};for(const h of TRACKED)BY_KEY[h.key]=h;
+const stepOf=key=>(BY_KEY[key]&&BY_KEY[key].step)||1;
+const maxOf=key=>(BY_KEY[key]&&BY_KEY[key].max)||MAX_COUNT;
+/* Habits that are not plain tallies say how to read their number. */
+const fmtVal=(h,v)=>h.fmt?h.fmt(v):String(v);
 function blankDay(){
   const d={prayers:[false,false,false,false,false],quran:0,gym:"",c:{}};
   for(const h of TRACKED)d[h.key]=0;
@@ -763,7 +774,7 @@ function countOf(key,k,row){
   if(!r)return 0;
   const v=r[key];
   return v===true?0:v===false?1
-    :(typeof v==="number"&&isFinite(v)&&v>=0)?Math.min(MAX_COUNT,Math.round(v)):0;
+    :(typeof v==="number"&&isFinite(v)&&v>=0)?Math.min(maxOf(key),Math.round(v)):0;
 }
 function day(k){
   const d=Object.assign(blankDay(),S.days[k]||{});
@@ -1244,8 +1255,8 @@ function buildHabitSections(){
            data-h="${h.key}" data-toggle="1" aria-label="${esc(h.label)}"><span></span></button>`
       : `<div class="stepper${multi?" multi":""}"><b class="cnt" id="${h.key}Val">0</b>
          <div class="pm">
-           <button id="${h.key}Minus" data-h="${h.key}" data-d="-1" aria-label="${esc(h.label)}, one fewer">${MINUS}</button>
-           ${adds.map(a=>`<button${multi?' class="txt"':""} data-h="${h.key}" data-d="${a.d}" aria-label="Add ${esc(a.label)}">${multi?"+"+a.d:PLUS}</button>`).join("")}
+           <button id="${h.key}Minus" data-h="${h.key}" data-d="-${h.step||1}" aria-label="${esc(h.label)}, less">${MINUS}</button>
+           ${adds.map(a=>`<button${multi?' class="txt"':""} data-h="${h.key}" data-d="${a.d}" aria-label="Add ${esc(a.label)}">${multi?"+"+(a.text||a.d):PLUS}</button>`).join("")}
          </div></div>`;
     return `<div class="shdr"><span class="t">${esc(h.title)}</span></div>
      <div class="card"><div class="cell">${icon(h.icon,h.tone)}<span class="cl">${esc(h.label)}</span>
@@ -1308,9 +1319,10 @@ function renderToday(){
       $(h.key+"Tgl").setAttribute("aria-checked",String(v>0));
     }else{
       const out=$(h.key+"Val");
-      out.textContent=String(v);
+      out.textContent=fmtVal(h,v);
       out.className="cnt"+(v===0?" zero":" some");
-      out.setAttribute("aria-label",`${h.label}: ${v===1?"once":v+" times"}`);
+      out.setAttribute("aria-label",
+        `${h.label}: ${h.fmt?fmtVal(h,v):v===1?"once":v+" times"}`);
       $(h.key+"Minus").disabled=v===0;
     }
 
@@ -1347,7 +1359,7 @@ $("habitsToday").addEventListener("click",e=>{
   const key=b.dataset.h;
   const next=b.dataset.toggle
     ? (day(cur)[key]?0:1)
-    : clampNum(day(cur)[key]+(+b.dataset.d),0,MAX_COUNT);
+    : clampNum(day(cur)[key]+(+b.dataset.d),0,maxOf(key));
   haptic();setDay({[key]:next});
 });
 $("prevDay").addEventListener("click",()=>{
@@ -1676,7 +1688,7 @@ function renderStats(){
       [h.days,pct(zero,n),`${zero} of ${n}`],
       /* An average of a yes/no is meaningless; count the days instead. */
       h.kind==="switch"?[h.count,String(sum),`${pct(sum,n)} of days`]
-                       :[h.perDay,String(r1(sum/n))],
+                       :[h.perDay,h.fmt?h.fmt(sum/n):String(r1(sum/n))],
       ["Current streak",dayCount(s.cur)],
       ["Longest streak",dayCount(s.best),s.runs>1?`avg ${dayCount(r1(s.avg))}`:""]
     ].map(tile).join("");
@@ -1698,8 +1710,10 @@ function renderStats(){
     a.push(`<i class="${p?"l"+Math.min(4,Math.ceil(p*4/5)):""}${fut}${tod}" title="${esc(t)}: ${p} of 5"></i>`);
     for(const h of TRACKED){
       const v=d[h.key];
-      const cls=v===0?"ok":v===1?"bad":"bad2";
-      const lbl=v===0?"none":v===1?"once":v+" times";
+      /* One step is the lighter shade, more than that the darker one — so a
+         half hour reads like a single slip rather than a whole bad day. */
+      const cls=v===0?"ok":v<=(h.step||1)?"bad":"bad2";
+      const lbl=v===0?"none":h.fmt?h.fmt(v):v===1?"once":v+" times";
       cells[h.key].push(`<i class="${cls}${fut}${tod}" title="${esc(t)}: ${esc(lbl)}"></i>`);
     }
   }

@@ -27,8 +27,6 @@
   --gold:#ff9500; --gold-weak:rgba(255,149,0,.12);
   --red:#ff3b30; --green:#34c759;
   --h1:rgba(255,149,0,.26); --h2:rgba(255,149,0,.5); --h3:rgba(255,149,0,.74); --h4:#ff9500;
-  --c1:rgba(88,86,214,.26); --c4:#5856d6;
-  --g1:rgba(52,199,89,.26); --g4:#34c759;
   --pop:0 10px 34px rgba(0,0,0,.14),0 1px 3px rgba(0,0,0,.1);
   --lift:0 -14px 50px rgba(0,0,0,.18);
   --thumb:#ffffff; --thumb-sh:0 3px 8px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04);
@@ -49,8 +47,6 @@
   --gold:#ff9f0a; --gold-weak:rgba(255,159,10,.18);
   --red:#ff453a; --green:#30d158;
   --h1:rgba(255,159,10,.28); --h2:rgba(255,159,10,.52); --h3:rgba(255,159,10,.76); --h4:#ff9f0a;
-  --c1:rgba(94,92,230,.3); --c4:#5e5ce6;
-  --g1:rgba(48,209,88,.3); --g4:#30d158;
   --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
   --pop:0 10px 34px rgba(0,0,0,.5); --lift:0 -14px 50px rgba(0,0,0,.6);
   color-scheme:dark;}}
@@ -65,8 +61,6 @@
   --gold:#ff9f0a; --gold-weak:rgba(255,159,10,.18);
   --red:#ff453a; --green:#30d158;
   --h1:rgba(255,159,10,.28); --h2:rgba(255,159,10,.52); --h3:rgba(255,159,10,.76); --h4:#ff9f0a;
-  --c1:rgba(94,92,230,.3); --c4:#5e5ce6;
-  --g1:rgba(48,209,88,.3); --g4:#30d158;
   --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
   --pop:0 10px 34px rgba(0,0,0,.5); --lift:0 -14px 50px rgba(0,0,0,.6);
   color-scheme:dark;}
@@ -210,12 +204,11 @@ button.cell:active,.tap:active{background:var(--f4)}
 .seg button[aria-pressed="true"]::after,
 .seg button[aria-pressed="true"]+button::after{opacity:0}
 .seg button[aria-pressed="true"]{font-weight:600}
-/* yes/no habit control; .alt is the second habit's accent */
-.seg.yn.yes .thumb{background:var(--tint)}
-.seg.yn.alt.yes .thumb{background:var(--green)}
-.seg.yn.no  .thumb{background:var(--red)}
-.seg.yn.yes button[data-v="yes"],.seg.yn.no button[data-v="no"]{color:#fff}
-.seg.yn.yes button[data-v="yes"]::after,.seg.yn.no button[data-v="no"]::after{opacity:0}
+/* habit counter readout: dash = unrecorded, 0 = a clean day, 1+ = slips */
+.cnt{min-width:46px;text-align:center;font-size:17px;font-weight:500;
+  font-variant-numeric:tabular-nums;color:var(--lab3);transition:color .18s}
+.cnt.zero{color:var(--green)}
+.cnt.some{color:var(--red);font-weight:600}
 
 /* ==========================================================================
    Stepper
@@ -319,9 +312,10 @@ button.cell:active,.tap:active{background:var(--f4)}
 .heat i{aspect-ratio:1;border-radius:5px;background:var(--f4);position:relative;font-style:normal}
 .heat i.l1{background:var(--h1)}.heat i.l2{background:var(--h2)}
 .heat i.l3{background:var(--h3)}.heat i.l4{background:var(--h4)}
-.heat.c i.l4{background:var(--c4)}.heat.c i.l1{background:var(--c1)}
-.heat.g i.l4{background:var(--g4)}.heat.g i.l1{background:var(--g1)}
-.heat i.bad{background:var(--red);opacity:.85}
+/* habit grids read semantically: green = none that day, red = slips */
+.heat i.ok{background:var(--green)}
+.heat i.bad{background:var(--red);opacity:.5}
+.heat i.bad2{background:var(--red);opacity:.92}
 .heat i.fut{background:none;box-shadow:inset 0 0 0 1px var(--f4)}
 .heat i.today{box-shadow:0 0 0 2px var(--lab)}
 .legend{display:flex;align-items:center;justify-content:flex-end;gap:5px;
@@ -329,8 +323,9 @@ button.cell:active,.tap:active{background:var(--f4)}
 .legend i{width:11px;height:11px;border-radius:3px;background:var(--f4);font-style:normal}
 .legend i.l1{background:var(--h1)}.legend i.l2{background:var(--h2)}
 .legend i.l3{background:var(--h3)}.legend i.l4{background:var(--h4)}
-.legend.c i.l1{background:var(--c1)}.legend.c i.l4{background:var(--c4)}
-.legend.g i.l1{background:var(--g1)}.legend.g i.l4{background:var(--g4)}
+.legend i.ok{background:var(--green)}
+.legend i.bad{background:var(--red);opacity:.5}
+.legend i.bad2{background:var(--red);opacity:.92}
 
 /* ==========================================================================
    Tab bar
@@ -538,24 +533,8 @@ button.cell:active,.tap:active{background:var(--f4)}
       <div class="cell"><div class="seg wide" id="gym" role="group" aria-label="Training"><span class="thumb"></span><button data-v="rest">Rest</button><button data-v="upper">Upper</button><button data-v="lower">Lower</button></div></div>
     </div>
 
-    <div class="shdr"><span class="t">Stayed clean</span></div>
-    <div class="card">
-      <div class="cell"><div class="seg yn wide" id="clean" role="group" aria-label="Stayed clean"><span class="thumb"></span><button data-v="yes">Yes</button><button data-v="no">No</button></div></div>
-    </div>
-    <div class="tiles" style="margin-top:10px">
-      <div class="tile"><span>Current</span><b id="cleanCur">0</b><small id="cleanCurSub"></small></div>
-      <div class="tile"><span>Longest</span><b id="cleanBest">0</b><small id="cleanBestSub"></small></div>
-    </div>
-
-    <div class="shdr"><span class="t">Stayed off weed</span></div>
-    <div class="card">
-      <div class="cell"><div class="seg yn alt wide" id="weed" role="group" aria-label="Stayed off weed"><span class="thumb"></span><button data-v="yes">Yes</button><button data-v="no">No</button></div></div>
-    </div>
-    <div class="tiles" style="margin-top:10px">
-      <div class="tile"><span>Current</span><b id="weedCur">0</b><small id="weedCurSub"></small></div>
-      <div class="tile"><span>Longest</span><b id="weedBest">0</b><small id="weedBestSub"></small></div>
-    </div>
-    <p class="foot">Tap the active answer again to clear it.</p>
+    <div id="habitsToday"></div>
+    <p class="foot">— means nothing recorded yet. + logs zero, then counts up; − clears.</p>
   </section>
 
   <!-- ================= Quran ================= -->
@@ -637,21 +616,7 @@ button.cell:active,.tap:active{background:var(--f4)}
     <div class="shdr"><span class="t">Training</span></div>
     <div class="tiles" id="gymStats"></div>
 
-    <div class="shdr"><span class="t">Stayed clean</span></div>
-    <div class="tiles" id="cleanStats"></div>
-    <div class="card heat-card"><div class="heat-box">
-      <div class="heat-cap">Last 5 weeks</div>
-      <div class="heat-dow" id="dow2"></div><div class="heat c" id="heatClean"></div>
-      <div class="legend c"><i class="l4"></i><span>Clean</span><i style="background:var(--red);opacity:.85"></i><span>Not clean</span><i></i><span>No answer</span></div>
-    </div></div>
-
-    <div class="shdr"><span class="t">Stayed off weed</span></div>
-    <div class="tiles" id="weedStats"></div>
-    <div class="card heat-card"><div class="heat-box">
-      <div class="heat-cap">Last 5 weeks</div>
-      <div class="heat-dow" id="dow3"></div><div class="heat g" id="heatWeed"></div>
-      <div class="legend g"><i class="l4"></i><span>Weed free</span><i style="background:var(--red);opacity:.85"></i><span>Smoked</span><i></i><span>No answer</span></div>
-    </div></div>
+    <div id="habitsStats"></div>
   </section>
 </main>
 
@@ -725,23 +690,53 @@ const DOW=Array.from({length:7},(_,i)=>new Date(2021,7,1+i).toLocaleDateString(u
 const CHECK='<svg class="ck-i" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8 9.3 17.6 19.5 6.6"/></svg>';
 const CHEV='<svg class="chev" width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5 7 7.5l-5.5 6"/></svg>';
 const CHEV_CIRCLE='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 13.3-4.3-4.3a1.1 1.1 0 0 1 1.6-1.6L12 12.1l2.7-2.7a1.1 1.1 0 0 1 1.6 1.6z"/></svg>';
+const STEP_SVG='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="';
+const MINUS=STEP_SVG+'M5 12h14"/></svg>';
+const PLUS=STEP_SVG+'M12 5v14M5 12h14"/></svg>';
 const clampNum=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
 
 let cur=todayKey();
-/* Yes/no habits. Adding one here wires up Today, the streaks and Stats;
-   a day saved before it existed reads as null, so no migration is needed. */
+/* Counted habits. Each day holds null (nothing recorded) or a count, where 0 is
+   a clean day. Adding one here wires up its Today section, streaks and Stats;
+   days saved before it existed read as null, so they stay unrecorded. */
 const TRACKED=[
-  {key:"clean",days:"Clean days",    yes:"clean",    no:"not clean",heat:"heatClean",dow:"dow2"},
-  {key:"weed", days:"Weed-free days",yes:"weed free",no:"smoked",   heat:"heatWeed", dow:"dow3"}
+  {key:"clean",   title:"Stayed clean",    label:"Slips today", days:"Clean days",         total:"Total slips"},
+  {key:"weed",    title:"Stayed off weed", label:"Times today", days:"Weed-free days",     total:"Total times"},
+  {key:"caffeine",title:"Caffeine",        label:"Drinks today",days:"Caffeine-free days", total:"Total drinks"}
 ];
-function blankDay(){return{prayers:[false,false,false,false,false],quran:0,gym:"",clean:null,weed:null,c:{}}}
+const MAX_COUNT=99;
+function blankDay(){
+  const d={prayers:[false,false,false,false,false],quran:0,gym:"",c:{}};
+  for(const h of TRACKED)d[h.key]=null;
+  return d;
+}
 function day(k){
   const d=Object.assign(blankDay(),S.days[k]||{});
   d.c=Object.assign({},d.c);
   d.prayers=Array.isArray(d.prayers)?d.prayers.slice(0,5):blankDay().prayers;
   while(d.prayers.length<5)d.prayers.push(false);
+  /* These were booleans before counts: true meant a clean day, so 0; false meant
+     it happened at least once, and 1 is the honest floor. Coercing on every read
+     keeps old days, restored backups and synced rows all correct. */
+  for(const h of TRACKED){
+    const v=d[h.key];
+    d[h.key]= v===true?0 : v===false?1
+      : (typeof v==="number"&&isFinite(v)&&v>=0) ? Math.min(MAX_COUNT,Math.round(v)) : null;
+  }
   return d;
 }
+/* Rewrite the stored copy once as well, so exports carry counts too. */
+(function migrateCounts(){
+  let changed=false;
+  for(const k of Object.keys(S.days)){
+    const row=S.days[k];
+    for(const h of TRACKED){
+      if(row[h.key]===true){row[h.key]=0;changed=true}
+      else if(row[h.key]===false){row[h.key]=1;changed=true}
+    }
+  }
+  if(changed)saveLocal();
+})();
 /* Anything worth showing a dot for on the calendar. */
 function logged(k){
   const r=S.days[k];if(!r)return false;
@@ -1151,13 +1146,14 @@ function swipeable(row){
 /* ==========================================================================
    Streaks
    ========================================================================== */
-const isYes=(key,k)=>day(k)[key]===true;
-/* Explicit "No" today breaks the streak; an unanswered today does not. */
+/* A streak day is one recorded as zero. */
+const isYes=(key,k)=>day(k)[key]===0;
+/* A count recorded today breaks the streak; an unrecorded today does not. */
 function currentStreak(key){
   let d=new Date();
-  const t=day(keyOf(d));
-  if(t[key]!==true){
-    if(t[key]===false)return 0;
+  const t=day(keyOf(d))[key];
+  if(t!==0){
+    if(t!==null)return 0;
     d=addDays(d,-1);
   }
   let c=0;
@@ -1183,6 +1179,31 @@ function streakRuns(key){
 /* ==========================================================================
    Today
    ========================================================================== */
+/* Built once from TRACKED so the habits cannot drift apart, and a fourth is one
+   line. Values are filled by renderToday / renderStats. */
+function buildHabitSections(){
+  $("habitsToday").innerHTML=TRACKED.map(h=>
+    `<div class="shdr"><span class="t">${esc(h.title)}</span></div>
+     <div class="card"><div class="cell"><span class="cl">${esc(h.label)}</span>
+       <div class="stepper"><b class="cnt" id="${h.key}Val">—</b>
+         <div class="pm">
+           <button id="${h.key}Minus" data-h="${h.key}" data-d="-1" aria-label="${esc(h.label)}, one fewer">${MINUS}</button>
+           <button data-h="${h.key}" data-d="1" aria-label="${esc(h.label)}, one more">${PLUS}</button>
+         </div></div></div></div>
+     <div class="tiles" style="margin-top:10px">
+       <div class="tile"><span>Current</span><b id="${h.key}Cur">0</b><small id="${h.key}CurSub"></small></div>
+       <div class="tile"><span>Longest</span><b id="${h.key}Best">0</b><small id="${h.key}BestSub"></small></div>
+     </div>`).join("");
+  $("habitsStats").innerHTML=TRACKED.map(h=>
+    `<div class="shdr"><span class="t">${esc(h.title)}</span></div>
+     <div class="tiles" id="${h.key}Stats"></div>
+     <div class="card heat-card"><div class="heat-box">
+       <div class="heat-cap">Last 5 weeks</div>
+       <div class="heat-dow" id="${h.key}Dow"></div><div class="heat" id="${h.key}Heat"></div>
+       <div class="legend"><i class="ok"></i><span>None</span><i class="bad"></i><span>Once</span><i class="bad2"></i><span>More</span><i></i><span>Blank</span></div>
+     </div></div>`).join("");
+}
+
 function setDay(patch){S.days[cur]=Object.assign(day(cur),patch);schedule("day",cur);renderToday()}
 /* Always reach at least five years back so earlier days can still be filled in,
    and stretch further if there is older history than that. */
@@ -1216,12 +1237,12 @@ function renderToday(){
   paintSeg($("gym"));
 
   for(const h of TRACKED){
-    const seg=$(h.key),v=d[h.key];
-    for(const b of seg.querySelectorAll("button"))
-      b.setAttribute("aria-pressed",String((v===true&&b.dataset.v==="yes")||(v===false&&b.dataset.v==="no")));
-    seg.classList.toggle("yes",v===true);
-    seg.classList.toggle("no",v===false);
-    paintSeg(seg);
+    const v=d[h.key],out=$(h.key+"Val");
+    out.textContent=v===null?"—":String(v);
+    out.className="cnt"+(v===0?" zero":v>0?" some":"");
+    out.setAttribute("aria-label",
+      `${h.label}: ${v===null?"not recorded":v===1?"once":v+" times"}`);
+    $(h.key+"Minus").disabled=v===null;
 
     const c=currentStreak(h.key),r=streakRuns(h.key);
     $(h.key+"Cur").textContent=dayCount(c);
@@ -1238,7 +1259,8 @@ $("prayers").addEventListener("click",e=>{
   const n=$("prayers").children[i];
   if(n&&p[i]){n.classList.add("pop");setTimeout(()=>n.classList.remove("pop"),380)}
 });
-document.querySelectorAll(".pm button").forEach(b=>b.addEventListener("click",()=>{
+/* Scoped to this stepper: the habit steppers use .pm too. */
+$("qMinus").parentNode.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
   const v=clampNum((+day(cur).quran||0)+(+b.dataset.d),0,9999);
   haptic();$("quran").value=v;setDay({quran:v});
 }));
@@ -1250,13 +1272,17 @@ $("gym").addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
   haptic();setDay({gym:day(cur).gym===b.dataset.v?"":b.dataset.v});
 });
-for(const h of TRACKED){
-  $(h.key).addEventListener("click",e=>{
-    const b=e.target.closest("button");if(!b)return;
-    const v=b.dataset.v==="yes";
-    haptic();setDay({[h.key]:day(cur)[h.key]===v?null:v});
-  });
-}
+/* One scale: — is the rung below 0, so + starts a day at none and - clears it. */
+$("habitsToday").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-h]");if(!b)return;
+  const key=b.dataset.h,step=+b.dataset.d,v=day(cur)[key];
+  let next;
+  if(v===null)next=step>0?0:null;
+  else next=v+step;
+  if(next!==null&&next<0)next=null;
+  if(next!==null&&next>MAX_COUNT)next=MAX_COUNT;
+  haptic();setDay({[key]:next});
+});
 $("prevDay").addEventListener("click",()=>{
   if(cur<=earliestKey())return;
   cur=keyOf(addDays(fromKey(cur),-1));renderToday();
@@ -1544,14 +1570,15 @@ function renderStats(){
   const since=ks.length?Math.round((fromKey(todayKey())-fromKey(ks[0]))/864e5)+1:1;
   const n=Math.max(1,range?Math.min(range,since):since);
   let pr=0,q=0,qDays=0,up=0,lo=0,rest=0;
-  const tally={};TRACKED.forEach(h=>tally[h.key]={yes:0,no:0});
+  const tally={};TRACKED.forEach(h=>tally[h.key]={zero:0,sum:0});
   for(let i=0;i<n;i++){
     const d=day(keyOf(addDays(new Date(),-i)));
     pr+=d.prayers.filter(Boolean).length;
     const pages=+d.quran||0;q+=pages;if(pages>0)qDays++;
     if(d.gym==="upper")up++;else if(d.gym==="lower")lo++;else if(d.gym==="rest")rest++;
     for(const h of TRACKED){
-      if(d[h.key]===true)tally[h.key].yes++;else if(d[h.key]===false)tally[h.key].no++;
+      const v=d[h.key];
+      if(v===0)tally[h.key].zero++;else if(v>0)tally[h.key].sum+=v;
     }
   }
   const r1=x=>Math.round(x*10)/10;
@@ -1576,10 +1603,10 @@ function renderStats(){
     ["Not logged",String(Math.max(0,n-gym-rest))]
   ].map(tile).join("");
   for(const h of TRACKED){
-    const{yes,no}=tally[h.key],c=currentStreak(h.key),r=streakRuns(h.key);
+    const{zero,sum}=tally[h.key],c=currentStreak(h.key),r=streakRuns(h.key);
     $(h.key+"Stats").innerHTML=[
-      [h.days,pct(yes,n),`${yes} of ${n}`],
-      ["Answered",pct(yes+no,n),`${n-yes-no} blank`],
+      [h.days,pct(zero,n),`${zero} of ${n}`],
+      [h.total,String(sum),`${r1(sum/n)} per day`],
       ["Current streak",dayCount(c)],
       ["Longest streak",dayCount(r.best),r.runs>1?`avg ${dayCount(r1(r.avg))}`:""]
     ].map(tile).join("");
@@ -1588,7 +1615,7 @@ function renderStats(){
   /* Weekday-aligned 5-week calendar, Sunday first, ending this week. */
   const dow=DOW.map(d=>`<i>${esc(d)}</i>`).join("");
   $("dow1").innerHTML=dow;
-  TRACKED.forEach(h=>{$(h.dow).innerHTML=dow});
+  TRACKED.forEach(h=>{$(h.key+"Dow").innerHTML=dow});
   const now=new Date();
   const weekStart=addDays(now,-now.getDay());
   const start=addDays(weekStart,-28);
@@ -1601,11 +1628,13 @@ function renderStats(){
     a.push(`<i class="${p?"l"+Math.min(4,Math.ceil(p*4/5)):""}${fut}${tod}" title="${esc(t)}: ${p} of 5"></i>`);
     for(const h of TRACKED){
       const v=d[h.key];
-      cells[h.key].push(`<i class="${v===true?"l4":v===false?"bad":""}${fut}${tod}" title="${esc(t)}: ${v===true?h.yes:v===false?h.no:"no answer"}"></i>`);
+      const cls=v===null?"":v===0?"ok":v===1?"bad":"bad2";
+      const lbl=v===null?"nothing recorded":v===0?"none":v===1?"once":v+" times";
+      cells[h.key].push(`<i class="${cls}${fut}${tod}" title="${esc(t)}: ${esc(lbl)}"></i>`);
     }
   }
   $("heatPray").innerHTML=a.join("");
-  TRACKED.forEach(h=>{$(h.heat).innerHTML=cells[h.key].join("")});
+  TRACKED.forEach(h=>{$(h.key+"Heat").innerHTML=cells[h.key].join("")});
 }
 $("range").addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
@@ -1841,6 +1870,7 @@ if("serviceWorker" in navigator){
 }
 
 applyTheme();
+buildHabitSections();
 const h=(location.hash||"").slice(1);
 showTab(TITLES[h]?h:"today");
 connect();

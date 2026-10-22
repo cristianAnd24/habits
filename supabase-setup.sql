@@ -37,10 +37,21 @@ create or replace function public.habits_put(p_key text, p_data jsonb)
   set search_path = public
 as $$
 begin
-  -- a few KB is normal; this only stops someone filling the free tier
+  -- A few KB is normal. This only stops someone filling the free tier.
   if pg_column_size(p_data) > 2 * 1024 * 1024 then
-    raise exception 'too large';
+    raise exception 'payload too large';
   end if;
+
+  -- Anyone can read the publishable key out of the page source and call this
+  -- with a key of their choosing. Guessing an existing one is hopeless -- 160
+  -- bits -- but nothing stops them creating rows under keys of their own, so
+  -- cap how many rows can exist at all. A handful of devices needs a handful
+  -- of rows; raise the number here if you ever run out.
+  if (select count(*) from public.habits_state) >= 20
+     and not exists (select 1 from public.habits_state where key = p_key) then
+    raise exception 'no room for a new key';
+  end if;
+
   insert into public.habits_state (key, data, updated_at)
   values (p_key, p_data, now())
   on conflict (key) do update

@@ -637,7 +637,6 @@ button.cell:active,.tap:active{background:var(--f4)}
       <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M12 16.6 5.1 9.7a1.2 1.2 0 0 1 1.7-1.7L12 13.2l5.2-5.2a1.2 1.2 0 0 1 1.7 1.7z"/></svg>
     </button></div>
     <div class="card" id="prList"></div>
-    <p class="foot" id="histFoot"></p>
   </section>
 
   <!-- ================= Stats ================= -->
@@ -1488,7 +1487,6 @@ function renderGym(){
     </div>`).join("")
     :`<p class="empty">${prs.length?"Nothing logged for that exercise.":"No entries yet."}</p>`;
   $("prList").querySelectorAll(".sw").forEach(swipeable);
-  $("histFoot").textContent=list.length?"Tap a row to edit it, or swipe left to delete.":"";
   openRow=null;
 }
 $("unit").addEventListener("click",e=>{

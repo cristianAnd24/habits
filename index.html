@@ -26,6 +26,7 @@
   --tint:#5856d6; --tint-weak:rgba(88,86,214,.12); --on-tint:#ffffff;
   --gold:#ff9500; --gold-weak:rgba(255,149,0,.12);
   --red:#ff3b30; --green:#34c759; --brown:#ac7f5e; --purple:#af52de; --pink:#ff2d55;
+  --teal:#30b0c7;
   --h1:rgba(255,149,0,.26); --h2:rgba(255,149,0,.5); --h3:rgba(255,149,0,.74); --h4:#ff9500;
   --pop:0 10px 34px rgba(0,0,0,.14),0 1px 3px rgba(0,0,0,.1);
   --lift:0 -14px 50px rgba(0,0,0,.18);
@@ -46,6 +47,7 @@
   --tint:#5e5ce6; --tint-weak:rgba(94,92,230,.22); --on-tint:#ffffff;
   --gold:#ff9f0a; --gold-weak:rgba(255,159,10,.18);
   --red:#ff453a; --green:#30d158; --brown:#b78a66; --purple:#bf5af2; --pink:#ff375f;
+  --teal:#40cbe0;
   --h1:rgba(255,159,10,.28); --h2:rgba(255,159,10,.52); --h3:rgba(255,159,10,.76); --h4:#ff9f0a;
   --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
   --pop:0 10px 34px rgba(0,0,0,.5); --lift:0 -14px 50px rgba(0,0,0,.6);
@@ -60,6 +62,7 @@
   --tint:#5e5ce6; --tint-weak:rgba(94,92,230,.22); --on-tint:#ffffff;
   --gold:#ff9f0a; --gold-weak:rgba(255,159,10,.18);
   --red:#ff453a; --green:#30d158; --brown:#b78a66; --purple:#bf5af2; --pink:#ff375f;
+  --teal:#40cbe0;
   --h1:rgba(255,159,10,.28); --h2:rgba(255,159,10,.52); --h3:rgba(255,159,10,.76); --h4:#ff9f0a;
   --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
   --pop:0 10px 34px rgba(0,0,0,.5); --lift:0 -14px 50px rgba(0,0,0,.6);
@@ -190,8 +193,10 @@ button.cell:active,.tap:active{background:var(--f4)}
 .dlabel{flex:1;min-width:0;text-align:center;border-radius:10px;padding:5px 4px;
   display:flex;flex-direction:column;align-items:center;gap:1px;transition:background .15s}
 .dlabel:active{background:var(--f4)}
-.dlabel b{font-size:17px;font-weight:600;letter-spacing:-.022em;display:flex;align-items:center;gap:5px}
-.dlabel b svg{color:var(--tint)}
+.dlabel b{font-size:17px;font-weight:600;letter-spacing:-.022em;display:flex;align-items:center;
+  gap:5px;max-width:100%}
+.dlabel b span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dlabel b svg{color:var(--tint);flex:none}
 .dlabel span{font-size:13px;color:var(--lab2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
 
 /* ==========================================================================
@@ -242,13 +247,16 @@ button.cell:active,.tap:active{background:var(--f4)}
 .stepper.multi .cnt{width:44px}
 /* Small phones: give the row label its space back rather than ellipsis it. */
 @media (max-width:389px){
-  .stepper .cnt{width:46px}
+  /* 52, not 46: a three-digit dose plus its unit needs 49. The labels in these
+     rows are short, so the few pixels come out of slack. */
+  .stepper .cnt{width:52px}
   .pm button{width:40px}
   .stepper.multi .cnt{width:36px}
   .stepper.multi .pm button{width:34px}
   .cell{gap:10px}
 }
 .cnt{width:58px;height:34px;flex:none;display:flex;align-items:center;justify-content:center;
+  white-space:nowrap;
   border-radius:8px;background:var(--f3);font-size:17px;font-weight:500;
   font-variant-numeric:tabular-nums;color:var(--lab3);transition:color .18s}
 .cnt.zero{color:var(--green)}
@@ -557,10 +565,9 @@ button.cell:active,.tap:active{background:var(--f4)}
         <svg width="13" height="22" viewBox="0 0 13 22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M11 1.5 2.5 11 11 20.5"/></svg>
       </button>
       <button class="dlabel" id="dateBtn" aria-label="Choose a date">
-        <b><span id="dateLabel">Today</span>
+        <b><span id="dateLabel"></span>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4.5" width="18" height="17" rx="3.5"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></svg>
         </b>
-        <span id="dateSub"></span>
       </button>
       <button class="arrow" id="nextDay" aria-label="Next day">
         <svg width="13" height="22" viewBox="0 0 13 22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 1.5 10.5 11 2 20.5"/></svg>
@@ -752,6 +759,9 @@ const GLYPH={
   book:'<path d="M11.2 6.3C9.3 5 6.7 4.5 3.9 5a.9.9 0 0 0-.7.9v11.4a.9.9 0 0 0 1.1.9c2.5-.4 4.8 0 6.5 1.2a.9.9 0 0 0 .4.2zm1.6 0v14.3a.9.9 0 0 0 .4-.2c1.7-1.2 4-1.6 6.5-1.2a.9.9 0 0 0 1.1-.9V5.9a.9.9 0 0 0-.7-.9c-2.8-.5-5.4 0-7.3 1.3"/>',
   dumbbell:'<rect x="5" y="5.4" width="3" height="13.2" rx="1.4"/><rect x="16" y="5.4" width="3" height="13.2" rx="1.4"/><rect x="2" y="8.6" width="2.4" height="6.8" rx="1.2"/><rect x="19.6" y="8.6" width="2.4" height="6.8" rx="1.2"/><rect x="7.2" y="10.7" width="9.6" height="2.6" rx="1"/>',
   note:'<path d="M19.4 3.2a.9.9 0 0 0-1.1-.9l-8 1.8a.9.9 0 0 0-.7.9v9.3a3.4 3.4 0 1 0 1.8 3V8.4l6.2-1.4v4.6a3.4 3.4 0 1 0 1.8 3z"/>',
+  /* Two halves, each rounded only at its outer end, so they read as one
+     capsule with a seam rather than as two separate pills. */
+  capsule:'<g transform="rotate(-45 12 12)"><path d="M8.4 11.5V6.6a3.6 3.6 0 0 1 7.2 0v4.9z"/><path d="M8.4 12.5h7.2v4.9a3.6 3.6 0 0 1-7.2 0z"/></g>',
   camera:'<path d="M8.4 3.1h7.2a5.3 5.3 0 0 1 5.3 5.3v7.2a5.3 5.3 0 0 1-5.3 5.3H8.4a5.3 5.3 0 0 1-5.3-5.3V8.4a5.3 5.3 0 0 1 5.3-5.3m0 2A3.3 3.3 0 0 0 5.1 8.4v7.2a3.3 3.3 0 0 0 3.3 3.3h7.2a3.3 3.3 0 0 0 3.3-3.3V8.4a3.3 3.3 0 0 0-3.3-3.3z"/><path d="M12 7.5a4.5 4.5 0 1 0 0 9 4.5 4.5 0 0 0 0-9m0 2a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5"/><circle cx="16.9" cy="7.1" r="1.15"/>'
 };
 const icon=(name,tone,size)=>
@@ -775,6 +785,11 @@ const TRACKED=[
    adds:[{d:30,text:".5",label:"half an hour"},{d:60,text:"1",label:"an hour"}]},
   {key:"caffeine",icon:"cup",   tone:"brown",title:"Caffeine",        label:"Units today",  days:"Caffeine-free days",perDay:"Caffeine per day",
    adds:[{d:1,text:"1",label:"a coffee"},{d:2,text:"2",label:"an energy drink"}]},
+  /* A dose, not a tally: stored in mg and stepped 10 at a time, so one step is
+     the lightest day on the heat map rather than one milligram. */
+  {key:"vyvanse", icon:"capsule",tone:"teal",title:"Vyvanse",       label:"Dose today",   days:"Days without it",  perDay:"mg per day",
+   step:10, max:140, one:"10 mg", fmt:v=>v?v+"mg":"0",
+   adds:[{d:10,label:"10 mg"}]},
   /* Still a count underneath — 0 or 1 — so streaks, stats and the heat map need
      no special case; only the control and the second stat tile differ. */
   {key:"music",   icon:"note",  tone:"purple",kind:"switch",title:"Music", label:"Listened today",
@@ -1373,7 +1388,7 @@ function buildHabitSections(){
      <div class="card heat-card"><div class="heat-box">
        <div class="heat-cap">Last 5 weeks</div>
        <div class="heat-dow" id="${h.key}Dow"></div><div class="heat" id="${h.key}Heat"></div>
-       <div class="legend"><i class="ok"></i><span>${h.kind==="switch"?"No":"None"}</span><i class="bad"></i><span>${h.kind==="switch"?"Yes":"Once"}</span>${h.kind==="switch"?"":'<i class="bad2"></i><span>More</span>'}</div>
+       <div class="legend"><i class="ok"></i><span>${h.kind==="switch"?"No":"None"}</span><i class="bad"></i><span>${h.kind==="switch"?"Yes":h.one||"Once"}</span>${h.kind==="switch"?"":'<i class="bad2"></i><span>More</span>'}</div>
      </div></div>`).join("");
   /* The other single-row sections get a badge too, so Today reads as a list of
      distinct things rather than four identical cards. */
@@ -1392,10 +1407,11 @@ function earliestKey(){
 function renderToday(){
   const d=day(cur),dt=fromKey(cur),isToday=cur===todayKey();
   const diff=Math.round((fromKey(todayKey())-dt)/864e5);
-  $("dateLabel").textContent=isToday?"Today":diff===1?"Yesterday":
-    diff<7?dt.toLocaleDateString(undefined,{weekday:"long"}):
-    dt.toLocaleDateString(undefined,{month:"long",day:"numeric"});
-  $("dateSub").textContent=dt.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric",year:"numeric"});
+  /* The year only when it is not this one — on a narrow phone it is the part
+     that gets ellipsed away, and for the current year it says nothing. */
+  $("dateLabel").textContent=fmt(cur,{weekday:"long",month:"long",day:"numeric",
+    ...(dt.getFullYear()===new Date().getFullYear()?{}:{year:"numeric"})});
+  if(curTab==="today")$("title").textContent=$("navTitle").textContent=dayTitle();
   $("nextDay").disabled=isToday;
   $("prevDay").disabled=cur<=earliestKey();
 
@@ -2093,13 +2109,28 @@ $("moreBtn").addEventListener("click",()=>{
    Tabs + chrome
    ========================================================================== */
 const TITLES={today:"Today",quran:"Quran",gym:"Gym",stats:"Stats"};
+let curTab="today";
+/* Today's title names the day on screen rather than the tab, because the tab
+   keeps its name while the day underneath it changes. The date nav carries the
+   full date, so this says only where you are relative to now. */
+function dayTitle(){
+  const dt=fromKey(cur),diff=Math.round((fromKey(todayKey())-dt)/864e5);
+  if(diff===0)return "Today";
+  if(diff===1)return "Yesterday";
+  if(diff<7)return fmt(cur,{weekday:"long"});
+  return fmt(cur,dt.getFullYear()===new Date().getFullYear()
+    ?{day:"numeric",month:"long"}
+    :{day:"numeric",month:"short",year:"numeric"});
+}
+const tabTitle=t=>t==="today"?dayTitle():TITLES[t];
 function showTab(t){
+  curTab=t;
   for(const k in TITLES)$("v-"+k).classList.toggle("hidden",k!==t);
   document.querySelectorAll(".tabbar button").forEach(b=>{
     if(b.dataset.tab===t)b.setAttribute("aria-current","page");
     else b.removeAttribute("aria-current");
   });
-  $("title").textContent=$("navTitle").textContent=TITLES[t];
+  $("title").textContent=$("navTitle").textContent=tabTitle(t);
   try{history.replaceState(null,"","#"+t)}catch(e){location.hash=t}
   closeRow();renderAll();scrollTo(0,0);syncNav();
 }

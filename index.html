@@ -168,6 +168,11 @@ main{max-width:560px;margin:0 auto;
 .cell.block{display:block}
 .cl{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cv{color:var(--lab2);font-variant-numeric:tabular-nums;text-align:right}
+/* 40 hex characters have to be readable and selectable on a phone, so they
+   wrap rather than ellipsing, and a tap selects the lot. */
+.keyline{display:block;width:100%;color:var(--lab2);word-break:break-all;
+  font:500 13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.02em;
+  -webkit-user-select:all;user-select:all}
 .sub{font-size:15px;color:var(--lab2)}
 button.cell{-webkit-tap-highlight-color:transparent}
 button.cell:active,.tap:active{background:var(--f4)}
@@ -707,7 +712,8 @@ const SURAH_EN="Al-Fatihah|Al-Baqarah|Al-Imran|An-Nisa|Al-Ma'idah|Al-An'am|Al-A'
 const SURAH_AR="الفاتحة|البقرة|آل عمران|النساء|المائدة|الأنعام|الأعراف|الأنفال|التوبة|يونس|هود|يوسف|الرعد|إبراهيم|الحجر|النحل|الإسراء|الكهف|مريم|طه|الأنبياء|الحج|المؤمنون|النور|الفرقان|الشعراء|النمل|القصص|العنكبوت|الروم|لقمان|السجدة|الأحزاب|سبأ|فاطر|يس|الصافات|ص|الزمر|غافر|فصلت|الشورى|الزخرف|الدخان|الجاثية|الأحقاف|محمد|الفتح|الحجرات|ق|الذاريات|الطور|النجم|القمر|الرحمن|الواقعة|الحديد|المجادلة|الحشر|الممتحنة|الصف|الجمعة|المنافقون|التغابن|الطلاق|التحريم|الملك|القلم|الحاقة|المعارج|نوح|الجن|المزمل|المدثر|القيامة|الإنسان|المرسلات|النبأ|النازعات|عبس|التكوير|الانفطار|المطففين|الانشقاق|البروج|الطارق|الأعلى|الغاشية|الفجر|البلد|الشمس|الليل|الضحى|الشرح|التين|العلق|القدر|البينة|الزلزلة|العاديات|القارعة|التكاثر|العصر|الهمزة|الفيل|قريش|الماعون|الكوثر|الكافرون|النصر|المسد|الإخلاص|الفلق|الناس".split("|");
 
 const LS="daily-habits-v1";
-const META0=()=>({surahs:[],rounds:0,prs:[],unit:"lb",habits:[],theme:"auto",backedUp:null});
+const META0=()=>({surahs:[],rounds:0,prs:[],unit:"lb",habits:[],theme:"auto",backedUp:null,
+  syncOn:false,syncKey:null});
 let S={days:{},meta:META0()};
 try{const raw=localStorage.getItem(LS);if(raw){const p=JSON.parse(raw);if(p&&p.days&&p.meta)S=p}}catch(e){}
 S.meta=Object.assign(META0(),S.meta);
@@ -839,16 +845,18 @@ function logged(k){
    ========================================================================== */
 let SB_URL="";   /* https://<project>.supabase.co */
 let SB_KEY="";   /* publishable (anon) key */
-const TABLE="habits_state";
-const SESSION_KEY="daily-habits-session";
 const syncConfigured=()=>!!(SB_URL&&SB_KEY);
-
-let session=null;
-try{const r=localStorage.getItem(SESSION_KEY);if(r)session=JSON.parse(r)}catch(e){}
-const signedIn=()=>!!(session&&session.access_token&&session.user);
-function saveSession(s){
-  session=s;
-  try{s?localStorage.setItem(SESSION_KEY,JSON.stringify(s)):localStorage.removeItem(SESSION_KEY)}catch(e){}
+/* No account and no login. The device holds a 160-bit secret, and the table is
+   unreachable over REST — reads and writes go through functions that only ever
+   touch the row matching the key supplied. So the publishable key, which is
+   public by design, reveals nothing on its own.
+   The secret lives in meta, which means it travels inside the backup file:
+   restoring a backup restores sync along with the data. */
+const syncKey=()=>(S.meta&&S.meta.syncKey)||"";
+const syncOn=()=>!!(syncConfigured()&&S.meta&&S.meta.syncOn&&syncKey());
+function newSyncKey(){
+  const b=new Uint8Array(20);crypto.getRandomValues(b);
+  return [...b].map(x=>x.toString(16).padStart(2,"0")).join("");
 }
 function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
 
@@ -862,46 +870,18 @@ function setSync(state){
 }
 
 /* ---- transport ---- */
-async function sbFetch(path,opts,isRetry){
-  const o=opts||{};
-  const headers=Object.assign({apikey:SB_KEY,"Content-Type":"application/json"},
-    signedIn()?{Authorization:"Bearer "+session.access_token}:{},o.headers||{});
-  const r=await fetch(SB_URL+path,Object.assign({},o,{headers}));
-  /* One silent refresh, then give up rather than loop. */
-  if(r.status===401&&signedIn()&&!isRetry&&await refreshSession())return sbFetch(path,opts,true);
-  return r;
-}
-async function refreshSession(){
-  if(!session||!session.refresh_token)return false;
-  try{
-    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`,{
-      method:"POST",headers:{apikey:SB_KEY,"Content-Type":"application/json"},
-      body:JSON.stringify({refresh_token:session.refresh_token})});
-    if(!r.ok){saveSession(null);return false}
-    saveSession(await r.json());
-    return true;
-  }catch(e){return false}
-}
 const sbError=async r=>{
-  try{const j=await r.json();return j.msg||j.error_description||j.message||"Something went wrong"}
-  catch(e){return "Something went wrong"}
+  try{const j=await r.json();return j.msg||j.message||j.hint||"Sync failed"}
+  catch(e){return "Sync failed"}
 };
-
-/* ---- sign in with an emailed code ---- */
-async function sendCode(email){
-  const r=await fetch(`${SB_URL}/auth/v1/otp`,{method:"POST",
+async function rpc(fn,args){
+  const r=await fetch(`${SB_URL}/rest/v1/rpc/${fn}`,{method:"POST",
     headers:{apikey:SB_KEY,"Content-Type":"application/json"},
-    body:JSON.stringify({email,create_user:true})});
+    body:JSON.stringify(args)});
   if(!r.ok)throw new Error(await sbError(r));
+  const t=await r.text();
+  return t?JSON.parse(t):null;
 }
-async function verifyCode(email,token){
-  const r=await fetch(`${SB_URL}/auth/v1/verify`,{method:"POST",
-    headers:{apikey:SB_KEY,"Content-Type":"application/json"},
-    body:JSON.stringify({type:"email",email,token})});
-  if(!r.ok)throw new Error(await sbError(r));
-  saveSession(await r.json());
-}
-function signOut(){saveSession(null);setSync(null);renderAll()}
 
 /* ---- merge ----
    Nothing is ever dropped: days are unioned, and where both sides hold the same
@@ -933,39 +913,42 @@ function mergeState(a,b){
 }
 
 /* ---- pull / push ---- */
-async function pullRemote(){
-  const r=await sbFetch(`/rest/v1/${TABLE}?select=data&limit=1`,{method:"GET"});
-  if(!r.ok)throw new Error(await sbError(r));
-  const rows=await r.json();
-  return rows.length?rows[0].data:null;
-}
+const pullRemote=()=>rpc("habits_get",{p_key:syncKey()});
 let pushTimer=null,pushing=false,pushAgain=false;
 async function pushRemote(){
-  if(!syncConfigured()||!signedIn())return;
-  if(pushing){pushAgain=true;return}
+  if(!syncOn())return false;
+  if(pushing){pushAgain=true;return true}
   pushing=true;setSync("saving");
-  try{
-    const r=await sbFetch(`/rest/v1/${TABLE}?on_conflict=user_id`,{method:"POST",
-      headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
-      body:JSON.stringify({user_id:session.user.id,data:S,updated_at:new Date().toISOString()})});
-    setSync(r.ok?"on":"off");
-  }catch(e){setSync("off")}
+  let ok=true;
+  try{await rpc("habits_put",{p_key:syncKey(),p_data:S});setSync("on")}
+  catch(e){ok=false;setSync("off")}
   finally{pushing=false;if(pushAgain){pushAgain=false;pushRemote()}}
+  return ok;
 }
 /* Called by every edit. Saves locally first, always — the network is a bonus. */
 function schedule(){
   saveLocal();
-  if(!syncConfigured()||!signedIn())return;
+  if(!syncOn())return;
   clearTimeout(pushTimer);pushTimer=setTimeout(pushRemote,1200);
 }
 async function connect(){
-  if(!syncConfigured()||!signedIn()){setSync(null);return}
+  if(!syncOn()){setSync(null);return false}
   setSync("saving");
   try{
     const remote=await pullRemote();
     if(remote){S=mergeState(S,remote);saveLocal();applyTheme();renderAll()}
-    await pushRemote();
-  }catch(e){setSync("off")}
+    return await pushRemote();
+  }catch(e){setSync("off");return false}
+}
+async function enableSync(){
+  if(!S.meta.syncKey)S.meta.syncKey=newSyncKey();
+  S.meta.syncOn=true;saveLocal();
+  const ok=await connect();renderAll();
+  return ok;
+}
+function disableSync(){
+  /* Keeps the key, so turning it back on finds the same row again. */
+  S.meta.syncOn=false;saveLocal();setSync(null);renderAll();
 }
 
 /* ==========================================================================
@@ -1945,7 +1928,7 @@ async function openDataSheet(){
     title:"Data",left:"Close",
     build:(body,root)=>{
       const rows=[
-        ...(syncConfigured()?[["Sync",signedIn()?session.user.email:"Off"]]:[]),
+        ...(syncConfigured()?[["Sync",syncOn()?"On":"Off"]]:[]),
         ["Kept on this device",persisted===true?"Protected":persisted===false?"Best effort":"Unknown"],
         ["Opened from home screen",installed?"Yes":"No"],
         ["Days logged",String(Object.keys(S.days).length)],
@@ -1969,8 +1952,7 @@ async function openDataSheet(){
         "launch it from the icon. Storage does not carry across, so export a backup first and "+
         "restore it once installed."));
       if(syncConfigured()){
-        const sy=el("button","btn"+(signedIn()?" ghost":""),
-          signedIn()?"Stop syncing":"Turn on sync");
+        const sy=el("button","btn ghost","Sync");
         sy.onclick=()=>{root.close();setTimeout(openSyncSheet,420)};
         body.appendChild(sy);
       }
@@ -1983,61 +1965,85 @@ async function openDataSheet(){
   });
 }
 
-/* Sign in, or out, from the Data sheet. Two steps in one sheet: ask for the
-   email, then for the code that arrives. */
+/* Sync has no account and no login — just this device's key, shown here so it
+   can be written down, and a field to paste another device's key in. */
 function openSyncSheet(){
-  if(signedIn()){
-    confirmBox("Stop syncing?",
-      `${session.user.email} will be signed out on this device. Your log stays here, and the synced copy is left untouched.`,
-      "Sign out").then(ok=>{if(ok){signOut();hud("Signed out")}});
-    return;
-  }
-  let step="email",email="";
-  const root=sheet({
-    title:"Sync",left:"Cancel",
-    build:(body,r)=>{
+  sheet({
+    title:"Sync",left:"Close",
+    build:(body,root)=>{
       const card=el("div","card");
       const foot=el("p","foot","");
-      const go=el("button","btn","Send me a code");
+      const primary=el("button","btn","");
+      const copy=el("button","btn ghost hidden","Copy the key");
+      const paste=el("button","btn ghost","Use a key from another device");
       const render=()=>{
-        card.innerHTML=step==="email"
-          ? `<div class="cell"><span class="cl" style="flex:0 0 auto">Email</span>
-               <input class="cin" id="syncEmail" type="email" inputmode="email"
-                 autocomplete="email" placeholder="you@example.com" aria-label="Email"></div>`
-          : `<div class="cell"><span class="cl" style="flex:0 0 auto">Code</span>
-               <input class="cin" id="syncCode" inputmode="numeric" autocomplete="one-time-code"
-                 placeholder="123456" aria-label="Six digit code"></div>`;
-        foot.textContent=step==="email"
-          ? "We email you a six digit code. No password, and no link to open — a link would land in Safari rather than here."
-          : `Enter the code sent to ${email}.`;
-        go.textContent=step==="email"?"Send me a code":"Sign in";
-        const i=card.querySelector("input");
-        if(i){i.value="";setTimeout(()=>i.focus(),60)}
+        const on=syncOn(),k=syncKey();
+        card.innerHTML=
+          `<div class="cell"><span class="cl">Status</span><span class="cv">${on?"On":"Off"}</span></div>`+
+          (k?`<div class="cell"><span class="cl">This device's key</span></div>
+              <div class="cell block"><code class="keyline">${esc(k)}</code></div>`:"");
+        foot.textContent=k
+          ? "Keep this key. It is the only way back to the synced copy, and it travels inside your backup file — so an exported backup restores sync as well as data. Anyone who has it can read and change your log."
+          : "No account, no password, no email. Turning this on generates a key for this device and keeps your log in step with it.";
+        primary.textContent=on?"Turn off sync":"Turn on sync";
+        primary.className="btn"+(on?" ghost":"");
+        copy.classList.toggle("hidden",!k);
       };
-      const submit=async()=>{
-        const v=(card.querySelector("input")||{}).value||"";
-        if(step==="email"){
-          if(!/^\S+@\S+\.\S+$/.test(v.trim())){hud("Check the email",WARN);return}
-          email=v.trim();go.disabled=true;go.textContent="Sending…";
-          try{await sendCode(email);step="code";render()}
-          catch(e){hud(e.message,WARN)}
-          finally{go.disabled=false}
+      primary.onclick=async()=>{
+        if(syncOn()){disableSync();render();hud("Sync off");return}
+        primary.disabled=true;primary.textContent="Starting…";
+        const ok=await enableSync();
+        primary.disabled=false;render();
+        hud(ok?"Sync on":"Could not reach sync",ok?undefined:WARN);
+      };
+      /* Called straight from the tap: iOS refuses a clipboard write otherwise. */
+      copy.onclick=()=>{
+        const k=syncKey();if(!k)return;
+        if(navigator.clipboard&&navigator.clipboard.writeText){
+          navigator.clipboard.writeText(k).then(()=>hud("Copied"),()=>hud("Select it and copy",WARN));
         }else{
-          if(!/^\d{6}$/.test(v.trim())){hud("Six digits",WARN);return}
-          go.disabled=true;go.textContent="Signing in…";
-          try{
-            await verifyCode(email,v.trim());
-            r.close();hud("Syncing");await connect();renderAll();
-          }catch(e){hud(e.message,WARN);go.disabled=false;go.textContent="Sign in"}
+          const r=document.createRange();r.selectNodeContents(card.querySelector(".keyline"));
+          const sel=getSelection();sel.removeAllRanges();sel.addRange(r);
+          hud("Select it and copy",WARN);
         }
       };
-      go.onclick=submit;
-      card.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();submit()}});
-      body.append(card,foot,go);
+      paste.onclick=async()=>{
+        const v=await promptKey();
+        if(!v)return;
+        S.meta.syncKey=v;S.meta.syncOn=true;saveLocal();
+        const ok=await connect();
+        render();renderAll();
+        hud(ok?"Pulled in":"Could not reach sync",ok?undefined:WARN);
+      };
+      body.append(card,foot,primary,copy,paste);
       render();
     }
   });
-  return root;
+}
+/* A one-field sheet, so a key can be moved between devices by hand. */
+function promptKey(){
+  return new Promise(res=>{
+    let done=false;
+    const root=sheet({
+      title:"Paste a key",left:"Cancel",right:"Use it",
+      onRight:()=>{
+        const v=((root.querySelector("input")||{}).value||"").trim().toLowerCase();
+        if(!/^[0-9a-f]{40}$/.test(v)){hud("That is not a sync key",WARN);return false}
+        done=true;res(v);
+      },
+      build:body=>{
+        const card=el("div","card");
+        card.innerHTML=`<div class="cell"><input class="cin" style="text-align:left"
+          autocapitalize="off" autocorrect="off" spellcheck="false"
+          placeholder="40 characters" aria-label="Sync key"></div>`;
+        body.append(card,el("p","foot",
+          "Taking a key from another device points this one at the same synced copy. Your log here is merged in, not replaced."));
+        setTimeout(()=>{const i=card.querySelector("input");i&&i.focus()},80);
+      }
+    });
+    const orig=root.close;
+    root.close=()=>{orig();if(!done){done=true;res(null)}};
+  });
 }
 
 /* Once per launch, and only when there is something to lose. */

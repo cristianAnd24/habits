@@ -25,7 +25,7 @@
   --sep:rgba(60,60,67,.29);
   --tint:#5856d6; --tint-weak:rgba(88,86,214,.12); --on-tint:#ffffff;
   --gold:#ff9500; --gold-weak:rgba(255,149,0,.12);
-  --red:#ff3b30; --green:#34c759;
+  --red:#ff3b30; --green:#34c759; --brown:#ac7f5e;
   --h1:rgba(255,149,0,.26); --h2:rgba(255,149,0,.5); --h3:rgba(255,149,0,.74); --h4:#ff9500;
   --pop:0 10px 34px rgba(0,0,0,.14),0 1px 3px rgba(0,0,0,.1);
   --lift:0 -14px 50px rgba(0,0,0,.18);
@@ -45,7 +45,7 @@
   --sep:rgba(84,84,88,.65);
   --tint:#5e5ce6; --tint-weak:rgba(94,92,230,.22); --on-tint:#ffffff;
   --gold:#ff9f0a; --gold-weak:rgba(255,159,10,.18);
-  --red:#ff453a; --green:#30d158;
+  --red:#ff453a; --green:#30d158; --brown:#b78a66;
   --h1:rgba(255,159,10,.28); --h2:rgba(255,159,10,.52); --h3:rgba(255,159,10,.76); --h4:#ff9f0a;
   --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
   --pop:0 10px 34px rgba(0,0,0,.5); --lift:0 -14px 50px rgba(0,0,0,.6);
@@ -59,7 +59,7 @@
   --sep:rgba(84,84,88,.65);
   --tint:#5e5ce6; --tint-weak:rgba(94,92,230,.22); --on-tint:#ffffff;
   --gold:#ff9f0a; --gold-weak:rgba(255,159,10,.18);
-  --red:#ff453a; --green:#30d158;
+  --red:#ff453a; --green:#30d158; --brown:#b78a66;
   --h1:rgba(255,159,10,.28); --h2:rgba(255,159,10,.52); --h3:rgba(255,159,10,.76); --h4:#ff9f0a;
   --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
   --pop:0 10px 34px rgba(0,0,0,.5); --lift:0 -14px 50px rgba(0,0,0,.6);
@@ -205,6 +205,13 @@ button.cell:active,.tap:active{background:var(--f4)}
 .seg button[aria-pressed="true"]+button::after{opacity:0}
 .seg button[aria-pressed="true"]{font-weight:600}
 /* habit counter readout: dash = unrecorded, 0 = a clean day, 1+ = slips */
+.ico{width:29px;height:29px;border-radius:7px;flex:none;display:inline-flex;
+  align-items:center;justify-content:center;vertical-align:-7px}
+.shdr .ico{margin-right:7px}
+.pm button.txt{font-size:15px;font-weight:600;letter-spacing:-.01em}
+/* A third button would otherwise squeeze the row label into an ellipsis. */
+.stepper.multi .pm button{width:39px}
+.stepper.multi .cnt{min-width:32px}
 .cnt{min-width:46px;text-align:center;font-size:17px;font-weight:500;
   font-variant-numeric:tabular-nums;color:var(--lab3);transition:color .18s}
 .cnt.zero{color:var(--green)}
@@ -534,7 +541,7 @@ button.cell:active,.tap:active{background:var(--f4)}
     </div>
 
     <div id="habitsToday"></div>
-    <p class="foot">— means nothing recorded yet. + logs zero, then counts up; − clears.</p>
+    <p class="foot">Every day starts at 0. Tap + each time it happens.</p>
   </section>
 
   <!-- ================= Quran ================= -->
@@ -690,6 +697,17 @@ const DOW=Array.from({length:7},(_,i)=>new Date(2021,7,1+i).toLocaleDateString(u
 const CHECK='<svg class="ck-i" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 12.8 9.3 17.6 19.5 6.6"/></svg>';
 const CHEV='<svg class="chev" width="9" height="15" viewBox="0 0 9 15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5 7 7.5l-5.5 6"/></svg>';
 const CHEV_CIRCLE='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20m0 13.3-4.3-4.3a1.1 1.1 0 0 1 1.6-1.6L12 12.1l2.7-2.7a1.1 1.1 0 0 1 1.6 1.6z"/></svg>';
+/* Rounded-square glyph badges, the way Settings separates its rows. */
+const GLYPH={
+  shield:'<path d="M12 3.2 4.8 6v5.3c0 4.2 3 7.7 7.2 8.6 4.2-.9 7.2-4.4 7.2-8.6V6z"/><path d="M9.2 12.1l2 2 3.6-3.9" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>',
+  leaf:'<path d="M19.6 4.4C10.2 4 4.8 8.3 4.8 14.2c0 1.6.4 3 1.1 4.1C8.2 13 12 10.1 16.4 8.6c-3.9 2.3-6.8 5.4-8.5 10 1 .4 2.1.6 3.3.6 5.5 0 8.6-4.6 8.4-14.8"/>',
+  cup:'<path d="M4.6 7.4h11.2v6.2a4.4 4.4 0 0 1-4.4 4.4H9a4.4 4.4 0 0 1-4.4-4.4z"/><path d="M16 9.2h1.8a2.4 2.4 0 0 1 0 4.8H16" fill="none" stroke="#fff" stroke-width="1.7"/><path d="M4 19.8h12.4" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>',
+  book:'<path d="M11.2 6.3C9.3 5 6.7 4.5 3.9 5a.9.9 0 0 0-.7.9v11.4a.9.9 0 0 0 1.1.9c2.5-.4 4.8 0 6.5 1.2a.9.9 0 0 0 .4.2zm1.6 0v14.3a.9.9 0 0 0 .4-.2c1.7-1.2 4-1.6 6.5-1.2a.9.9 0 0 0 1.1-.9V5.9a.9.9 0 0 0-.7-.9c-2.8-.5-5.4 0-7.3 1.3"/>',
+  dumbbell:'<rect x="5" y="5.4" width="3" height="13.2" rx="1.4"/><rect x="16" y="5.4" width="3" height="13.2" rx="1.4"/><rect x="2" y="8.6" width="2.4" height="6.8" rx="1.2"/><rect x="19.6" y="8.6" width="2.4" height="6.8" rx="1.2"/><rect x="7.2" y="10.7" width="9.6" height="2.6" rx="1"/>'
+};
+const icon=(name,tone,size)=>
+  `<span class="ico" style="background:var(--${tone})${size?`;width:${size}px;height:${size}px;border-radius:${Math.round(size/4.1)}px`:""}">`+
+  `<svg viewBox="0 0 24 24" fill="#fff" width="${size?Math.round(size*.62):18}" height="${size?Math.round(size*.62):18}">${GLYPH[name]}</svg></span>`;
 const STEP_SVG='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="';
 const MINUS=STEP_SVG+'M5 12h14"/></svg>';
 const PLUS=STEP_SVG+'M12 5v14M5 12h14"/></svg>';
@@ -700,15 +718,28 @@ let cur=todayKey();
    a clean day. Adding one here wires up its Today section, streaks and Stats;
    days saved before it existed read as null, so they stay unrecorded. */
 const TRACKED=[
-  {key:"clean",   title:"Stayed clean",    label:"Slips today", days:"Clean days",         perDay:"Slips per day"},
-  {key:"weed",    title:"Stayed off weed", label:"Times today", days:"Weed-free days",     perDay:"Times per day"},
-  {key:"caffeine",title:"Caffeine",        label:"Drinks today",days:"Caffeine-free days", perDay:"Drinks per day"}
+  {key:"clean",   icon:"shield",tone:"tint", title:"Stayed clean",    label:"Slips today", days:"Clean days",     perDay:"Slips per day"},
+  {key:"weed",    icon:"leaf",  tone:"green",title:"Stayed off weed", label:"Times today", days:"Weed-free days", perDay:"Times per day"},
+  {key:"caffeine",icon:"cup",   tone:"brown",title:"Caffeine",        label:"Units today",  days:"Caffeine-free days",perDay:"Caffeine per day",
+   adds:[{d:1,label:"a coffee"},{d:2,label:"an energy drink"}],
+   note:"A coffee counts as 1, an energy drink as 2."}
 ];
+const ADD_ONE=[{d:1,label:"one"}];
 const MAX_COUNT=99;
 function blankDay(){
   const d={prayers:[false,false,false,false,false],quran:0,gym:"",c:{}};
-  for(const h of TRACKED)d[h.key]=null;
+  for(const h of TRACKED)d[h.key]=0;
   return d;
+}
+/* Reads a habit's count straight off the stored row — no day() object built,
+   because the streak scan calls this once per day of history. An absent or
+   blank value is 0: a day with nothing logged is a day it did not happen. */
+function countOf(key,k,row){
+  const r=row!==undefined?row:S.days[k];
+  if(!r)return 0;
+  const v=r[key];
+  return v===true?0:v===false?1
+    :(typeof v==="number"&&isFinite(v)&&v>=0)?Math.min(MAX_COUNT,Math.round(v)):0;
 }
 function day(k){
   const d=Object.assign(blankDay(),S.days[k]||{});
@@ -718,11 +749,7 @@ function day(k){
   /* These were booleans before counts: true meant a clean day, so 0; false meant
      it happened at least once, and 1 is the honest floor. Coercing on every read
      keeps old days, restored backups and synced rows all correct. */
-  for(const h of TRACKED){
-    const v=d[h.key];
-    d[h.key]= v===true?0 : v===false?1
-      : (typeof v==="number"&&isFinite(v)&&v>=0) ? Math.min(MAX_COUNT,Math.round(v)) : null;
-  }
+  for(const h of TRACKED)d[h.key]=countOf(h.key,k,S.days[k]);
   return d;
 }
 /* Rewrite the stored copy once as well, so exports carry counts too. */
@@ -741,7 +768,7 @@ function day(k){
 function logged(k){
   const r=S.days[k];if(!r)return false;
   const d=day(k);
-  return d.prayers.some(Boolean)||+d.quran>0||!!d.gym||TRACKED.some(h=>d[h.key]!==null);
+  return d.prayers.some(Boolean)||+d.quran>0||!!d.gym||TRACKED.some(h=>d[h.key]>0);
 }
 
 /* ==========================================================================
@@ -1146,34 +1173,38 @@ function swipeable(row){
 /* ==========================================================================
    Streaks
    ========================================================================== */
-/* A streak day is one recorded as zero. */
-const isYes=(key,k)=>day(k)[key]===0;
-/* A count recorded today breaks the streak; an unrecorded today does not. */
-function currentStreak(key){
-  let d=new Date();
-  const t=day(keyOf(d))[key];
-  if(t!==0){
-    if(t!==null)return 0;
-    d=addDays(d,-1);
+/* A streak day is one counting zero. Since a day with no entry now counts as
+   zero, a streak would otherwise run backwards forever: it is bounded at the
+   first day with any record, which is the earliest the app can speak for.
+   One pass covers every habit, because it walks the whole history. */
+function streaks(){
+  const out={};
+  for(const h of TRACKED)out[h.key]={cur:0,best:0,avg:0,runs:0};
+  const ks=Object.keys(S.days);
+  if(!ks.length)return out;
+  const today=todayKey();
+  let first=ks[0];
+  for(const k of ks)if(k<first)first=k;
+  if(first>today)first=today;
+
+  const run={},lens={};
+  for(const h of TRACKED){run[h.key]=0;lens[h.key]=[]}
+  for(let d=fromKey(first);keyOf(d)<=today;d=addDays(d,1)){
+    const k=keyOf(d),row=S.days[k];
+    for(const h of TRACKED){
+      if(countOf(h.key,k,row)===0)run[h.key]++;
+      else{if(run[h.key])lens[h.key].push(run[h.key]);run[h.key]=0}
+    }
   }
-  let c=0;
-  while(isYes(key,keyOf(d))){c++;d=addDays(d,-1)}
-  return c;
-}
-function streakRuns(key){
-  const keys=Object.keys(S.days).filter(k=>isYes(key,k)).sort();
-  const lens=[];let run=0,prev=null;
-  for(const k of keys){
-    if(prev&&keyOf(addDays(fromKey(prev),1))===k)run++;
-    else{if(run)lens.push(run);run=1}
-    prev=k;
+  for(const h of TRACKED){
+    const o=out[h.key],l=lens[h.key];
+    o.cur=run[h.key];                       /* the run still open at today */
+    if(run[h.key])l.push(run[h.key]);
+    o.best=l.length?Math.max(...l):0;
+    o.avg=l.length?l.reduce((a,b)=>a+b,0)/l.length:0;
+    o.runs=l.length;
   }
-  if(run)lens.push(run);
-  return{
-    best:lens.length?Math.max(...lens):0,
-    avg:lens.length?lens.reduce((a,b)=>a+b,0)/lens.length:0,
-    runs:lens.length
-  };
+  return out;
 }
 
 /* ==========================================================================
@@ -1182,26 +1213,32 @@ function streakRuns(key){
 /* Built once from TRACKED so the habits cannot drift apart, and a fourth is one
    line. Values are filled by renderToday / renderStats. */
 function buildHabitSections(){
-  $("habitsToday").innerHTML=TRACKED.map(h=>
-    `<div class="shdr"><span class="t">${esc(h.title)}</span></div>
-     <div class="card"><div class="cell"><span class="cl">${esc(h.label)}</span>
-       <div class="stepper"><b class="cnt" id="${h.key}Val">—</b>
+  $("habitsToday").innerHTML=TRACKED.map(h=>{
+    const adds=h.adds||ADD_ONE,multi=adds.length>1;
+    return `<div class="shdr"><span class="t">${esc(h.title)}</span></div>
+     <div class="card"><div class="cell">${icon(h.icon,h.tone)}<span class="cl">${esc(h.label)}</span>
+       <div class="stepper${multi?" multi":""}"><b class="cnt" id="${h.key}Val">0</b>
          <div class="pm">
            <button id="${h.key}Minus" data-h="${h.key}" data-d="-1" aria-label="${esc(h.label)}, one fewer">${MINUS}</button>
-           <button data-h="${h.key}" data-d="1" aria-label="${esc(h.label)}, one more">${PLUS}</button>
+           ${adds.map(a=>`<button${multi?' class="txt"':""} data-h="${h.key}" data-d="${a.d}" aria-label="Add ${esc(a.label)}">${multi?"+"+a.d:PLUS}</button>`).join("")}
          </div></div></div></div>
+     ${h.note?`<p class="foot">${esc(h.note)}</p>`:""}
      <div class="tiles" style="margin-top:10px">
        <div class="tile"><span>Current</span><b id="${h.key}Cur">0</b><small id="${h.key}CurSub"></small></div>
        <div class="tile"><span>Longest</span><b id="${h.key}Best">0</b><small id="${h.key}BestSub"></small></div>
-     </div>`).join("");
+     </div>`;}).join("");
   $("habitsStats").innerHTML=TRACKED.map(h=>
-    `<div class="shdr"><span class="t">${esc(h.title)}</span></div>
+    `<div class="shdr"><span class="t">${icon(h.icon,h.tone,18)}${esc(h.title)}</span></div>
      <div class="tiles" id="${h.key}Stats"></div>
      <div class="card heat-card"><div class="heat-box">
        <div class="heat-cap">Last 5 weeks</div>
        <div class="heat-dow" id="${h.key}Dow"></div><div class="heat" id="${h.key}Heat"></div>
-       <div class="legend"><i class="ok"></i><span>None</span><i class="bad"></i><span>Once</span><i class="bad2"></i><span>More</span><i></i><span>Blank</span></div>
+       <div class="legend"><i class="ok"></i><span>None</span><i class="bad"></i><span>Once</span><i class="bad2"></i><span>More</span></div>
      </div></div>`).join("");
+  /* The other single-row sections get a badge too, so Today reads as a list of
+     distinct things rather than four identical cards. */
+  $("quran").closest(".cell").insertAdjacentHTML("afterbegin",icon("book","gold"));
+  $("gym").closest(".cell").insertAdjacentHTML("afterbegin",icon("dumbbell","tint"));
 }
 
 function setDay(patch){S.days[cur]=Object.assign(day(cur),patch);schedule("day",cur);renderToday()}
@@ -1236,19 +1273,19 @@ function renderToday(){
     b.setAttribute("aria-pressed",String(b.dataset.v===d.gym&&!!d.gym));
   paintSeg($("gym"));
 
+  const st=streaks();
   for(const h of TRACKED){
     const v=d[h.key],out=$(h.key+"Val");
-    out.textContent=v===null?"—":String(v);
-    out.className="cnt"+(v===0?" zero":v>0?" some":"");
-    out.setAttribute("aria-label",
-      `${h.label}: ${v===null?"not recorded":v===1?"once":v+" times"}`);
-    $(h.key+"Minus").disabled=v===null;
+    out.textContent=String(v);
+    out.className="cnt"+(v===0?" zero":" some");
+    out.setAttribute("aria-label",`${h.label}: ${v===1?"once":v+" times"}`);
+    $(h.key+"Minus").disabled=v===0;
 
-    const c=currentStreak(h.key),r=streakRuns(h.key);
-    $(h.key+"Cur").textContent=dayCount(c);
-    $(h.key+"Best").textContent=dayCount(r.best);
-    $(h.key+"CurSub").textContent=c&&c===r.best&&c>1?"Your best yet":"";
-    $(h.key+"BestSub").textContent=r.runs>1?`over ${r.runs} streaks`:"";
+    const s=st[h.key];
+    $(h.key+"Cur").textContent=dayCount(s.cur);
+    $(h.key+"Best").textContent=dayCount(s.best);
+    $(h.key+"CurSub").textContent=s.cur&&s.cur===s.best&&s.cur>1?"Your best yet":"";
+    $(h.key+"BestSub").textContent=s.runs>1?`over ${s.runs} streaks`:"";
   }
 }
 $("prayers").addEventListener("click",e=>{
@@ -1272,15 +1309,10 @@ $("gym").addEventListener("click",e=>{
   const b=e.target.closest("button");if(!b)return;
   haptic();setDay({gym:day(cur).gym===b.dataset.v?"":b.dataset.v});
 });
-/* One scale: — is the rung below 0, so + starts a day at none and - clears it. */
 $("habitsToday").addEventListener("click",e=>{
   const b=e.target.closest("button[data-h]");if(!b)return;
-  const key=b.dataset.h,step=+b.dataset.d,v=day(cur)[key];
-  let next;
-  if(v===null)next=step>0?0:null;
-  else next=v+step;
-  if(next!==null&&next<0)next=null;
-  if(next!==null&&next>MAX_COUNT)next=MAX_COUNT;
+  const key=b.dataset.h;
+  const next=clampNum(day(cur)[key]+(+b.dataset.d),0,MAX_COUNT);
   haptic();setDay({[key]:next});
 });
 $("prevDay").addEventListener("click",()=>{
@@ -1602,13 +1634,14 @@ function renderStats(){
     ["Rest days",String(rest)],
     ["Not logged",String(Math.max(0,n-gym-rest))]
   ].map(tile).join("");
+  const st=streaks();
   for(const h of TRACKED){
-    const{zero,sum}=tally[h.key],c=currentStreak(h.key),r=streakRuns(h.key);
+    const{zero,sum}=tally[h.key],s=st[h.key];
     $(h.key+"Stats").innerHTML=[
       [h.days,pct(zero,n),`${zero} of ${n}`],
       [h.perDay,String(r1(sum/n))],
-      ["Current streak",dayCount(c)],
-      ["Longest streak",dayCount(r.best),r.runs>1?`avg ${dayCount(r1(r.avg))}`:""]
+      ["Current streak",dayCount(s.cur)],
+      ["Longest streak",dayCount(s.best),s.runs>1?`avg ${dayCount(r1(s.avg))}`:""]
     ].map(tile).join("");
   }
 
@@ -1628,8 +1661,8 @@ function renderStats(){
     a.push(`<i class="${p?"l"+Math.min(4,Math.ceil(p*4/5)):""}${fut}${tod}" title="${esc(t)}: ${p} of 5"></i>`);
     for(const h of TRACKED){
       const v=d[h.key];
-      const cls=v===null?"":v===0?"ok":v===1?"bad":"bad2";
-      const lbl=v===null?"nothing recorded":v===0?"none":v===1?"once":v+" times";
+      const cls=v===0?"ok":v===1?"bad":"bad2";
+      const lbl=v===0?"none":v===1?"once":v+" times";
       cells[h.key].push(`<i class="${cls}${fut}${tod}" title="${esc(t)}: ${esc(lbl)}"></i>`);
     }
   }

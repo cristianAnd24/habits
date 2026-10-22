@@ -25,7 +25,7 @@
   --sep:rgba(60,60,67,.29);
   --tint:#5856d6; --tint-weak:rgba(88,86,214,.12); --on-tint:#ffffff;
   --gold:#ff9500; --gold-weak:rgba(255,149,0,.12);
-  --red:#ff3b30; --green:#34c759; --brown:#ac7f5e;
+  --red:#ff3b30; --green:#34c759; --brown:#ac7f5e; --purple:#af52de;
   --h1:rgba(255,149,0,.26); --h2:rgba(255,149,0,.5); --h3:rgba(255,149,0,.74); --h4:#ff9500;
   --pop:0 10px 34px rgba(0,0,0,.14),0 1px 3px rgba(0,0,0,.1);
   --lift:0 -14px 50px rgba(0,0,0,.18);
@@ -45,7 +45,7 @@
   --sep:rgba(84,84,88,.65);
   --tint:#5e5ce6; --tint-weak:rgba(94,92,230,.22); --on-tint:#ffffff;
   --gold:#ff9f0a; --gold-weak:rgba(255,159,10,.18);
-  --red:#ff453a; --green:#30d158; --brown:#b78a66;
+  --red:#ff453a; --green:#30d158; --brown:#b78a66; --purple:#bf5af2;
   --h1:rgba(255,159,10,.28); --h2:rgba(255,159,10,.52); --h3:rgba(255,159,10,.76); --h4:#ff9f0a;
   --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
   --pop:0 10px 34px rgba(0,0,0,.5); --lift:0 -14px 50px rgba(0,0,0,.6);
@@ -59,7 +59,7 @@
   --sep:rgba(84,84,88,.65);
   --tint:#5e5ce6; --tint-weak:rgba(94,92,230,.22); --on-tint:#ffffff;
   --gold:#ff9f0a; --gold-weak:rgba(255,159,10,.18);
-  --red:#ff453a; --green:#30d158; --brown:#b78a66;
+  --red:#ff453a; --green:#30d158; --brown:#b78a66; --purple:#bf5af2;
   --h1:rgba(255,159,10,.28); --h2:rgba(255,159,10,.52); --h3:rgba(255,159,10,.76); --h4:#ff9f0a;
   --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
   --pop:0 10px 34px rgba(0,0,0,.5); --lift:0 -14px 50px rgba(0,0,0,.6);
@@ -189,7 +189,9 @@ button.cell:active,.tap:active{background:var(--f4)}
    ========================================================================== */
 .seg{position:relative;display:flex;background:var(--f3);border-radius:9px;padding:2px;
   width:204px;flex:none;isolation:isolate}
-.seg.wide{width:100%}
+/* width:100% when it stands alone (the Stats range), but flex-basis 0 lets it
+   give way to a row icon instead of overflowing the card. */
+.seg.wide{width:100%;flex:1 1 0;min-width:0}
 .seg .thumb{position:absolute;top:2px;bottom:2px;left:2px;width:0;border-radius:7px;
   background:var(--thumb);box-shadow:var(--thumb-sh);z-index:0;opacity:0;
   transition:transform .26s var(--spring),width .26s var(--spring),opacity .16s,background .2s}
@@ -211,11 +213,28 @@ button.cell:active,.tap:active{background:var(--f4)}
 .pm button.txt{font-size:15px;font-weight:600;letter-spacing:-.01em}
 /* A third button would otherwise squeeze the row label into an ellipsis. */
 .stepper.multi .pm button{width:39px}
-.stepper.multi .cnt{min-width:32px}
-.cnt{min-width:46px;text-align:center;font-size:17px;font-weight:500;
+.stepper.multi .cnt{width:44px}
+/* Small phones: give the row label its space back rather than ellipsis it. */
+@media (max-width:389px){
+  .stepper .cnt{width:46px}
+  .pm button{width:40px}
+  .stepper.multi .cnt{width:36px}
+  .stepper.multi .pm button{width:34px}
+  .cell{gap:10px}
+}
+.cnt{width:58px;height:34px;flex:none;display:flex;align-items:center;justify-content:center;
+  border-radius:8px;background:var(--f3);font-size:17px;font-weight:500;
   font-variant-numeric:tabular-nums;color:var(--lab3);transition:color .18s}
 .cnt.zero{color:var(--green)}
 .cnt.some{color:var(--red);font-weight:600}
+/* iOS switch, for the habits that are simply yes or no */
+.tgl{width:51px;height:31px;flex:none;border-radius:16px;background:var(--f1);
+  position:relative;transition:background .26s var(--ease)}
+.tgl[aria-checked="true"]{background:var(--red)}
+.tgl span{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;
+  background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16);
+  transition:transform .26s var(--ease)}
+.tgl[aria-checked="true"] span{transform:translateX(20px)}
 
 /* ==========================================================================
    Stepper
@@ -541,7 +560,7 @@ button.cell:active,.tap:active{background:var(--f4)}
     </div>
 
     <div id="habitsToday"></div>
-    <p class="foot">Every day starts at 0. Tap + each time it happens.</p>
+    <p class="foot">Every day starts clear. Count up each time it happens.</p>
   </section>
 
   <!-- ================= Quran ================= -->
@@ -703,7 +722,8 @@ const GLYPH={
   leaf:'<path d="M19.6 4.4C10.2 4 4.8 8.3 4.8 14.2c0 1.6.4 3 1.1 4.1C8.2 13 12 10.1 16.4 8.6c-3.9 2.3-6.8 5.4-8.5 10 1 .4 2.1.6 3.3.6 5.5 0 8.6-4.6 8.4-14.8"/>',
   cup:'<path d="M4.6 7.4h11.2v6.2a4.4 4.4 0 0 1-4.4 4.4H9a4.4 4.4 0 0 1-4.4-4.4z"/><path d="M16 9.2h1.8a2.4 2.4 0 0 1 0 4.8H16" fill="none" stroke="#fff" stroke-width="1.7"/><path d="M4 19.8h12.4" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round"/>',
   book:'<path d="M11.2 6.3C9.3 5 6.7 4.5 3.9 5a.9.9 0 0 0-.7.9v11.4a.9.9 0 0 0 1.1.9c2.5-.4 4.8 0 6.5 1.2a.9.9 0 0 0 .4.2zm1.6 0v14.3a.9.9 0 0 0 .4-.2c1.7-1.2 4-1.6 6.5-1.2a.9.9 0 0 0 1.1-.9V5.9a.9.9 0 0 0-.7-.9c-2.8-.5-5.4 0-7.3 1.3"/>',
-  dumbbell:'<rect x="5" y="5.4" width="3" height="13.2" rx="1.4"/><rect x="16" y="5.4" width="3" height="13.2" rx="1.4"/><rect x="2" y="8.6" width="2.4" height="6.8" rx="1.2"/><rect x="19.6" y="8.6" width="2.4" height="6.8" rx="1.2"/><rect x="7.2" y="10.7" width="9.6" height="2.6" rx="1"/>'
+  dumbbell:'<rect x="5" y="5.4" width="3" height="13.2" rx="1.4"/><rect x="16" y="5.4" width="3" height="13.2" rx="1.4"/><rect x="2" y="8.6" width="2.4" height="6.8" rx="1.2"/><rect x="19.6" y="8.6" width="2.4" height="6.8" rx="1.2"/><rect x="7.2" y="10.7" width="9.6" height="2.6" rx="1"/>',
+  note:'<path d="M19.4 3.2a.9.9 0 0 0-1.1-.9l-8 1.8a.9.9 0 0 0-.7.9v9.3a3.4 3.4 0 1 0 1.8 3V8.4l6.2-1.4v4.6a3.4 3.4 0 1 0 1.8 3z"/>'
 };
 const icon=(name,tone,size)=>
   `<span class="ico" style="background:var(--${tone})${size?`;width:${size}px;height:${size}px;border-radius:${Math.round(size/4.1)}px`:""}">`+
@@ -722,7 +742,11 @@ const TRACKED=[
   {key:"weed",    icon:"leaf",  tone:"green",title:"Stayed off weed", label:"Times today", days:"Weed-free days", perDay:"Times per day"},
   {key:"caffeine",icon:"cup",   tone:"brown",title:"Caffeine",        label:"Units today",  days:"Caffeine-free days",perDay:"Caffeine per day",
    adds:[{d:1,label:"a coffee"},{d:2,label:"an energy drink"}],
-   note:"A coffee counts as 1, an energy drink as 2."}
+   note:"A coffee counts as 1, an energy drink as 2."},
+  /* Still a count underneath — 0 or 1 — so streaks, stats and the heat map need
+     no special case; only the control and the second stat tile differ. */
+  {key:"music",   icon:"note",  tone:"purple",kind:"switch",title:"Music", label:"Listened today",
+   days:"Music-free days", count:"Days with music"}
 ];
 const ADD_ONE=[{d:1,label:"one"}];
 const MAX_COUNT=99;
@@ -1215,13 +1239,17 @@ function streaks(){
 function buildHabitSections(){
   $("habitsToday").innerHTML=TRACKED.map(h=>{
     const adds=h.adds||ADD_ONE,multi=adds.length>1;
-    return `<div class="shdr"><span class="t">${esc(h.title)}</span></div>
-     <div class="card"><div class="cell">${icon(h.icon,h.tone)}<span class="cl">${esc(h.label)}</span>
-       <div class="stepper${multi?" multi":""}"><b class="cnt" id="${h.key}Val">0</b>
+    const control=h.kind==="switch"
+      ? `<button class="tgl" id="${h.key}Tgl" role="switch" aria-checked="false"
+           data-h="${h.key}" data-toggle="1" aria-label="${esc(h.label)}"><span></span></button>`
+      : `<div class="stepper${multi?" multi":""}"><b class="cnt" id="${h.key}Val">0</b>
          <div class="pm">
            <button id="${h.key}Minus" data-h="${h.key}" data-d="-1" aria-label="${esc(h.label)}, one fewer">${MINUS}</button>
            ${adds.map(a=>`<button${multi?' class="txt"':""} data-h="${h.key}" data-d="${a.d}" aria-label="Add ${esc(a.label)}">${multi?"+"+a.d:PLUS}</button>`).join("")}
-         </div></div></div></div>
+         </div></div>`;
+    return `<div class="shdr"><span class="t">${esc(h.title)}</span></div>
+     <div class="card"><div class="cell">${icon(h.icon,h.tone)}<span class="cl">${esc(h.label)}</span>
+       ${control}</div></div>
      ${h.note?`<p class="foot">${esc(h.note)}</p>`:""}
      <div class="tiles" style="margin-top:10px">
        <div class="tile"><span>Current</span><b id="${h.key}Cur">0</b><small id="${h.key}CurSub"></small></div>
@@ -1233,7 +1261,7 @@ function buildHabitSections(){
      <div class="card heat-card"><div class="heat-box">
        <div class="heat-cap">Last 5 weeks</div>
        <div class="heat-dow" id="${h.key}Dow"></div><div class="heat" id="${h.key}Heat"></div>
-       <div class="legend"><i class="ok"></i><span>None</span><i class="bad"></i><span>Once</span><i class="bad2"></i><span>More</span></div>
+       <div class="legend"><i class="ok"></i><span>${h.kind==="switch"?"No":"None"}</span><i class="bad"></i><span>${h.kind==="switch"?"Yes":"Once"}</span>${h.kind==="switch"?"":'<i class="bad2"></i><span>More</span>'}</div>
      </div></div>`).join("");
   /* The other single-row sections get a badge too, so Today reads as a list of
      distinct things rather than four identical cards. */
@@ -1275,11 +1303,16 @@ function renderToday(){
 
   const st=streaks();
   for(const h of TRACKED){
-    const v=d[h.key],out=$(h.key+"Val");
-    out.textContent=String(v);
-    out.className="cnt"+(v===0?" zero":" some");
-    out.setAttribute("aria-label",`${h.label}: ${v===1?"once":v+" times"}`);
-    $(h.key+"Minus").disabled=v===0;
+    const v=d[h.key];
+    if(h.kind==="switch"){
+      $(h.key+"Tgl").setAttribute("aria-checked",String(v>0));
+    }else{
+      const out=$(h.key+"Val");
+      out.textContent=String(v);
+      out.className="cnt"+(v===0?" zero":" some");
+      out.setAttribute("aria-label",`${h.label}: ${v===1?"once":v+" times"}`);
+      $(h.key+"Minus").disabled=v===0;
+    }
 
     const s=st[h.key];
     $(h.key+"Cur").textContent=dayCount(s.cur);
@@ -1312,7 +1345,9 @@ $("gym").addEventListener("click",e=>{
 $("habitsToday").addEventListener("click",e=>{
   const b=e.target.closest("button[data-h]");if(!b)return;
   const key=b.dataset.h;
-  const next=clampNum(day(cur)[key]+(+b.dataset.d),0,MAX_COUNT);
+  const next=b.dataset.toggle
+    ? (day(cur)[key]?0:1)
+    : clampNum(day(cur)[key]+(+b.dataset.d),0,MAX_COUNT);
   haptic();setDay({[key]:next});
 });
 $("prevDay").addEventListener("click",()=>{
@@ -1639,7 +1674,9 @@ function renderStats(){
     const{zero,sum}=tally[h.key],s=st[h.key];
     $(h.key+"Stats").innerHTML=[
       [h.days,pct(zero,n),`${zero} of ${n}`],
-      [h.perDay,String(r1(sum/n))],
+      /* An average of a yes/no is meaningless; count the days instead. */
+      h.kind==="switch"?[h.count,String(sum),`${pct(sum,n)} of days`]
+                       :[h.perDay,String(r1(sum/n))],
       ["Current streak",dayCount(s.cur)],
       ["Longest streak",dayCount(s.best),s.runs>1?`avg ${dayCount(r1(s.avg))}`:""]
     ].map(tile).join("");

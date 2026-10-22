@@ -380,7 +380,7 @@ button.cell:active,.tap:active{background:var(--f4)}
 .heat i.ok{background:var(--green)}
 .heat i.bad{background:var(--red);opacity:.5}
 .heat i.bad2{background:var(--red);opacity:.92}
-.heat i.fut{background:none;box-shadow:inset 0 0 0 1px var(--f4)}
+.heat i.fut,.heat i.pre{background:none;box-shadow:inset 0 0 0 1px var(--f4)}
 .heat i.today{box-shadow:0 0 0 2px var(--lab)}
 .legend{display:flex;align-items:center;justify-content:flex-end;gap:5px;
   margin-top:11px;font-size:11px;color:var(--lab3)}
@@ -390,6 +390,7 @@ button.cell:active,.tap:active{background:var(--f4)}
 .legend i.ok{background:var(--green)}
 .legend i.bad{background:var(--red);opacity:.5}
 .legend i.bad2{background:var(--red);opacity:.92}
+.legend i.pre{background:none;box-shadow:inset 0 0 0 1px var(--lab3)}
 
 /* ==========================================================================
    Tab bar
@@ -771,6 +772,7 @@ const STEP_SVG='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stro
 const MINUS=STEP_SVG+'M5 12h14"/></svg>';
 const PLUS=STEP_SVG+'M12 5v14M5 12h14"/></svg>';
 const clampNum=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+const DASH="\u2013";
 /* Minutes as "40m", "2h" or "1h20" -- no space, because the counter it has to
    sit inside is 52px wide on a small phone. */
 function hm(m){
@@ -848,6 +850,26 @@ function day(k){
   }
   if(changed)saveLocal();
 })();
+/* The first day each habit was ever written down.
+   A row saved before a habit existed simply has no key for it, and countOf
+   reads that absence as 0 -- fine for a control that has to show something,
+   wrong for a statistic. Without this, a habit added this morning claims a
+   clean streak as long as the whole log, and 100% of a month it was not alive
+   for. Days before this are not zeros; they are not days. */
+function firstSeen(){
+  const out={};for(const h of TRACKED)out[h.key]=null;
+  for(const k of Object.keys(S.days)){
+    const r=S.days[k];if(!r)continue;
+    for(const h of TRACKED){
+      const v=r[h.key];
+      if(v===undefined||v===null)continue;
+      if(out[h.key]===null||k<out[h.key])out[h.key]=k;
+    }
+  }
+  return out;
+}
+const untracked=(seen,key,k)=>!seen[key]||k<seen[key];
+
 /* Anything worth showing a dot for on the calendar. */
 function logged(k){
   const r=S.days[k];if(!r)return false;
@@ -1342,7 +1364,7 @@ function streaks(){
   for(const h of TRACKED)out[h.key]={cur:0,best:0,avg:0,runs:0};
   const ks=Object.keys(S.days);
   if(!ks.length)return out;
-  const today=todayKey();
+  const today=todayKey(),seen=firstSeen();
   let first=ks[0];
   for(const k of ks)if(k<first)first=k;
   if(first>today)first=today;
@@ -1352,6 +1374,8 @@ function streaks(){
   for(let d=fromKey(first);keyOf(d)<=today;d=addDays(d,1)){
     const k=keyOf(d),row=S.days[k];
     for(const h of TRACKED){
+      /* Before the habit existed there is nothing to be on a streak about. */
+      if(untracked(seen,h.key,k))continue;
       if(countOf(h.key,k,row)===0)run[h.key]++;
       else{if(run[h.key])lens[h.key].push(run[h.key]);run[h.key]=0}
     }
@@ -1391,12 +1415,12 @@ function buildHabitSections(){
        <div class="tile"><span>Longest</span><b id="${h.key}Best">0</b><small id="${h.key}BestSub"></small></div>
      </div>`;}).join("");
   $("habitsStats").innerHTML=TRACKED.map(h=>
-    `<div class="shdr"><span class="t">${icon(h.icon,h.tone,18)}${esc(h.title)}</span></div>
+    `<div class="shdr"><span class="t">${icon(h.icon,h.tone,18)}${esc(h.title)}</span><span class="x" id="${h.key}Since"></span></div>
      <div class="tiles" id="${h.key}Stats"></div>
      <div class="card heat-card"><div class="heat-box">
        <div class="heat-cap">Last 5 weeks</div>
        <div class="heat-dow" id="${h.key}Dow"></div><div class="heat" id="${h.key}Heat"></div>
-       <div class="legend"><i class="ok"></i><span>${h.kind==="switch"?"No":"None"}</span><i class="bad"></i><span>${h.kind==="switch"?"Yes":h.one||"Once"}</span>${h.kind==="switch"?"":'<i class="bad2"></i><span>More</span>'}</div>
+       <div class="legend"><i class="pre hidden" id="${h.key}PreK"></i><span class="hidden" id="${h.key}PreL">Untracked</span><i class="ok"></i><span>${h.kind==="switch"?"No":"None"}</span><i class="bad"></i><span>${h.kind==="switch"?"Yes":h.one||"Once"}</span>${h.kind==="switch"?"":'<i class="bad2"></i><span>More</span>'}</div>
      </div></div>`).join("");
   /* The other single-row sections get a badge too, so Today reads as a list of
      distinct things rather than four identical cards. */
@@ -1773,13 +1797,16 @@ function renderStats(){
   const since=ks.length?Math.round((fromKey(todayKey())-fromKey(ks[0]))/864e5)+1:1;
   const n=Math.max(1,range?Math.min(range,since):since);
   let pr=0,q=0,qDays=0,up=0,lo=0,rest=0;
-  const tally={};TRACKED.forEach(h=>tally[h.key]={zero:0,sum:0});
+  const seen=firstSeen();
+  const tally={};TRACKED.forEach(h=>tally[h.key]={zero:0,sum:0,days:0});
   for(let i=0;i<n;i++){
-    const d=day(keyOf(addDays(new Date(),-i)));
+    const k=keyOf(addDays(new Date(),-i)),d=day(k);
     pr+=d.prayers.filter(Boolean).length;
     const pages=+d.quran||0;q+=pages;if(pages>0)qDays++;
     if(d.gym==="upper")up++;else if(d.gym==="lower")lo++;else if(d.gym==="rest")rest++;
     for(const h of TRACKED){
+      if(untracked(seen,h.key,k))continue;
+      tally[h.key].days++;
       const v=d[h.key];
       if(v===0)tally[h.key].zero++;else if(v>0)tally[h.key].sum+=v;
     }
@@ -1805,26 +1832,37 @@ function renderStats(){
     ["Rest days",String(rest)],
     ["Not logged",String(Math.max(0,n-gym-rest))]
   ].map(tile).join("");
+  const now=new Date();
+  const heatStart=keyOf(addDays(addDays(now,-now.getDay()),-28));
   const st=streaks();
   for(const h of TRACKED){
-    const{zero,sum}=tally[h.key],s=st[h.key];
-    $(h.key+"Stats").innerHTML=[
-      [h.days,pct(zero,n),`${zero} of ${n}`],
+    const{zero,sum,days:nh}=tally[h.key],s=st[h.key];
+    const avgLabel=h.kind==="switch"?h.count:h.perDay;
+    $(h.key+"Stats").innerHTML=(nh?[
+      [h.days,pct(zero,nh),`${zero} of ${nh}`],
       /* An average of a yes/no is meaningless; count the days instead. */
-      h.kind==="switch"?[h.count,String(sum),`${pct(sum,n)} of days`]
-                       :[h.perDay,h.fmt?h.fmt(sum/n):String(r1(sum/n))],
+      h.kind==="switch"?[h.count,String(sum),`${pct(sum,nh)} of days`]
+                       :[h.perDay,h.fmt?h.fmt(sum/nh):String(r1(sum/nh))],
       ["Current streak",dayCount(s.cur)],
       ["Longest streak",dayCount(s.best),s.runs>1?`avg ${dayCount(r1(s.avg))}`:""]
-    ].map(tile).join("");
+    ]:[
+      [h.days,DASH,"nothing logged yet"],[avgLabel,DASH],
+      ["Current streak",DASH],["Longest streak",DASH]
+    ]).map(tile).join("");
+    /* Say so, rather than letting "2 of 2" sit under a heading saying 30 days. */
+    $(h.key+"Since").textContent=
+      nh&&nh<n?`since ${fmt(seen[h.key],{day:"numeric",month:"short"})}`:"";
+    /* The key for it only earns its place when such a day is on screen. */
+    const anyPre=!nh||seen[h.key]>heatStart;
+    $(h.key+"PreK").classList.toggle("hidden",!anyPre);
+    $(h.key+"PreL").classList.toggle("hidden",!anyPre);
   }
 
   /* Weekday-aligned 5-week calendar, Sunday first, ending this week. */
   const dow=DOW.map(d=>`<i>${esc(d)}</i>`).join("");
   $("dow1").innerHTML=dow;
   TRACKED.forEach(h=>{$(h.key+"Dow").innerHTML=dow});
-  const now=new Date();
-  const weekStart=addDays(now,-now.getDay());
-  const start=addDays(weekStart,-28);
+  const start=fromKey(heatStart);
   const a=[],cells={};TRACKED.forEach(h=>cells[h.key]=[]);
   for(let i=0;i<35;i++){
     const dt=addDays(start,i),k=keyOf(dt),d=day(k);
@@ -1836,8 +1874,9 @@ function renderStats(){
       const v=d[h.key];
       /* One step is the lighter shade, more than that the darker one — so a
          half hour reads like a single slip rather than a whole bad day. */
-      const cls=v===0?"ok":v<=(h.step||1)?"bad":"bad2";
-      const lbl=v===0?"none":h.fmt?h.fmt(v):v===1?"once":v+" times";
+      const pre=untracked(seen,h.key,k);
+      const cls=pre?"pre":v===0?"ok":v<=(h.step||1)?"bad":"bad2";
+      const lbl=pre?"not tracked yet":v===0?"none":h.fmt?h.fmt(v):v===1?"once":v+" times";
       cells[h.key].push(`<i class="${cls}${fut}${tod}" title="${esc(t)}: ${esc(lbl)}"></i>`);
     }
   }

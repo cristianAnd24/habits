@@ -97,18 +97,24 @@ svg{display:block;flex:none}
 /* ==========================================================================
    Navigation bar + large title
    ========================================================================== */
+/* Two stages, as on iOS. The material arrives the moment the large title starts
+   tucking under, so it slides behind frosted glass; leaving the blur switched on
+   while the bar is transparent sliced the title in half instead. blur(0) rather
+   than none so the filter has something to interpolate from. */
 .navbar{position:fixed;top:0;left:0;right:0;z-index:40;padding-top:env(safe-area-inset-top,0px);
-  -webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);
-  background:transparent;transition:background .22s linear}
-.navbar.solid{background:var(--bar)}
+  -webkit-backdrop-filter:blur(0px) saturate(100%);backdrop-filter:blur(0px) saturate(100%);
+  background:transparent;
+  transition:background .24s linear,-webkit-backdrop-filter .24s linear,backdrop-filter .24s linear}
+.navbar.material{background:var(--bar);
+  -webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%)}
 .navbar::after{content:"";position:absolute;left:0;right:0;bottom:0;height:.5px;
-  background:var(--sep);opacity:0;transition:opacity .22s linear}
-.navbar.solid::after{opacity:1}
+  background:var(--sep);opacity:0;transition:opacity .24s linear}
+.navbar.material::after{opacity:1}
 .navbar .in{position:relative;height:44px;max-width:560px;margin:0 auto;padding:0 10px;
   display:flex;align-items:center;justify-content:center}
 .navbar .nt{font-size:17px;font-weight:600;letter-spacing:-.022em;
   opacity:0;transform:translateY(7px);transition:opacity .2s ease,transform .2s ease}
-.navbar.solid .nt{opacity:1;transform:none}
+.navbar.titled .nt{opacity:1;transform:none}
 .navbar .more{position:absolute;right:6px;top:0;bottom:0;width:44px;
   display:flex;align-items:center;justify-content:center;color:var(--tint);
   transition:opacity .15s}
@@ -123,7 +129,6 @@ main{max-width:560px;margin:0 auto;
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",var(--sans)}
 .sync{font-size:13px;color:var(--lab2);padding-bottom:5px;display:flex;align-items:center;gap:5px}
 .sync i{width:7px;height:7px;border-radius:50%;background:var(--lab3)}
-#sentinel{height:1px;margin-top:-1px}
 
 /* ==========================================================================
    Grouped list
@@ -515,11 +520,10 @@ button.cell:active,.tap:active{background:var(--f4)}
 </div></div>
 
 <main>
-  <div class="big">
+  <div class="big" id="big">
     <h1 id="title">Today</h1>
     <span class="sync hidden" id="sync"></span>
   </div>
-  <div id="sentinel"></div>
 
   <!-- ================= Today ================= -->
   <section id="v-today">
@@ -1921,12 +1925,21 @@ function renderAll(){
   refreshBadge();
 }
 
-/* Large title collapses into the nav bar. One source of truth: where the
-   sentinel sits relative to the bottom of the bar. */
+/* The large title's own position drives both stages: the bar takes on its
+   material once the title begins to pass under it, and only swaps in the inline
+   title once the title has gone entirely. */
 function syncNav(){
-  const bar=$("navbar");
-  const h=bar.getBoundingClientRect().height;
-  bar.classList.toggle("solid",$("sentinel").getBoundingClientRect().top<=h);
+  const bar=$("navbar"),t=$("title").getBoundingClientRect();
+  const edge=bar.getBoundingClientRect().bottom;
+  const span=t.height||1,left=t.bottom-edge;
+  bar.classList.toggle("material",t.top<edge-1);
+  /* Hand over while the large title is still fading, so the two cross rather
+     than leaving the bar briefly empty between them. */
+  bar.classList.toggle("titled",left<=span*0.45);
+  /* UIKit fades the large title out as the bar collapses rather than letting it
+     slide under. Without this the part behind the bar still shows through the
+     material and the title reads as sliced in half. */
+  $("big").style.opacity=String(clampNum(left/span,0,1));
 }
 addEventListener("scroll",syncNav,{passive:true});
 addEventListener("resize",syncNav);

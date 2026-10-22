@@ -91,8 +91,18 @@ button,input{font:inherit;color:inherit;letter-spacing:inherit}
 /* Without this, two quick taps on one control (the page stepper especially)
    register as iOS double-tap-to-zoom. "manipulation" drops only the
    double-tap gesture; panning and pinch-to-zoom still work, which
-   user-scalable=no would have taken away. */
-button,input,select,textarea,a,label,[role="button"]{touch-action:manipulation}
+   user-scalable=no would have taken away.
+   Naming the controls is not enough. touch-action does not inherit, and the
+   finger lands on the icon inside the control, not the control: the hit target
+   over the date arrows is their <svg>, which was still auto. An enabled arrow
+   got away with it because the two taps fire clicks that defeat the gesture;
+   a disabled one fires nothing, so the double tap zoomed the page. Cover the
+   children, and the containers, so nothing under a finger is left at auto.
+   The narrower values below still win: intersecting with pan-y leaves pan-y,
+   and with none leaves none, so swipe rows and sheet drags are unaffected. */
+button,input,select,textarea,a,label,[role="button"],
+button *,label *,a *,
+main,#ui{touch-action:manipulation}
 button{cursor:pointer;-webkit-appearance:none;appearance:none;border:0;background:none;padding:0}
 input{-webkit-appearance:none;appearance:none}
 :focus{outline:none}

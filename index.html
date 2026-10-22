@@ -560,7 +560,6 @@ button.cell:active,.tap:active{background:var(--f4)}
     </div>
 
     <div id="habitsToday"></div>
-    <p class="foot">Every day starts clear. Count up each time it happens.</p>
   </section>
 
   <!-- ================= Quran ================= -->
@@ -744,11 +743,9 @@ const TRACKED=[
   /* Stored in minutes so half hours stay whole numbers; shown as hours. */
   {key:"instagram",icon:"camera",tone:"pink",title:"Instagram",      label:"Hours today",  days:"Days off it",      perDay:"Hours per day",
    step:30, max:24*60, fmt:m=>m?(Math.round(m/60*10)/10)+"h":"0",
-   adds:[{d:30,text:".5",label:"half an hour"},{d:60,text:"1",label:"an hour"}],
-   note:"Counted in half hours."},
+   adds:[{d:30,text:".5",label:"half an hour"},{d:60,text:"1",label:"an hour"}]},
   {key:"caffeine",icon:"cup",   tone:"brown",title:"Caffeine",        label:"Units today",  days:"Caffeine-free days",perDay:"Caffeine per day",
-   adds:[{d:1,text:"1",label:"a coffee"},{d:2,text:"2",label:"an energy drink"}],
-   note:"A coffee counts as 1, an energy drink as 2."},
+   adds:[{d:1,text:"1",label:"a coffee"},{d:2,text:"2",label:"an energy drink"}]},
   /* Still a count underneath — 0 or 1 — so streaks, stats and the heat map need
      no special case; only the control and the second stat tile differ. */
   {key:"music",   icon:"note",  tone:"purple",kind:"switch",title:"Music", label:"Listened today",
@@ -1261,7 +1258,6 @@ function buildHabitSections(){
     return `<div class="shdr"><span class="t">${esc(h.title)}</span></div>
      <div class="card"><div class="cell">${icon(h.icon,h.tone)}<span class="cl">${esc(h.label)}</span>
        ${control}</div></div>
-     ${h.note?`<p class="foot">${esc(h.note)}</p>`:""}
      <div class="tiles" style="margin-top:10px">
        <div class="tile"><span>Current</span><b id="${h.key}Cur">0</b><small id="${h.key}CurSub"></small></div>
        <div class="tile"><span>Longest</span><b id="${h.key}Best">0</b><small id="${h.key}BestSub"></small></div>

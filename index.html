@@ -843,8 +843,11 @@ function logged(k){
    The publishable key below is meant to be public; row-level security is what
    keeps the data private, so each account can only ever read its own row.
    ========================================================================== */
-let SB_URL="";   /* https://<project>.supabase.co */
-let SB_KEY="";   /* publishable (anon) key */
+/* The publishable key is meant to be public — it is in this page's source on
+   purpose. It can call the two functions below and nothing else; the table
+   itself has RLS on with no policies, so the key alone reaches nothing. */
+let SB_URL="https://akiqlzvsaefyxlzsxrjw.supabase.co";
+let SB_KEY="sb_publishable_OWWQeb80_kgvQAJXc7R9QA_zCGT8Uz4";
 const syncConfigured=()=>!!(SB_URL&&SB_KEY);
 /* No account and no login. The device holds a 160-bit secret, and the table is
    unreachable over REST — reads and writes go through functions that only ever

@@ -316,6 +316,10 @@ button.cell:active,.tap:active{background:var(--f4)}
 .mini:active{background:var(--f4)}
 .cin{flex:1;min-width:0;border:0;background:none;text-align:right;font-size:17px;
   color:var(--lab);font-variant-numeric:tabular-nums}
+/* Marks the standing record for an exercise. */
+.pr{display:inline-block;margin-left:7px;padding:1.5px 6px;border-radius:5px;
+  background:var(--gold);color:#fff;font-size:11px;font-weight:700;
+  letter-spacing:.03em;line-height:1.35;vertical-align:2px}
 .cin::placeholder{color:var(--lab3)}
 
 /* ==========================================================================
@@ -591,7 +595,7 @@ button.cell:active,.tap:active{background:var(--f4)}
 
   <!-- ================= Gym ================= -->
   <section id="v-gym" class="hidden">
-    <div class="shdr"><span class="t">Log a PR</span></div>
+    <div class="shdr"><span class="t">Log a lift</span></div>
     <div class="card">
       <div class="cell"><span class="cl" style="flex:0 0 auto">Exercise</span>
         <input id="prEx" class="cin" placeholder="Bench press" autocomplete="off" aria-label="Exercise">
@@ -614,7 +618,7 @@ button.cell:active,.tap:active{background:var(--f4)}
         <div class="seg" id="unit" style="width:118px" role="group" aria-label="Unit"><span class="thumb"></span><button data-v="lb">lb</button><button data-v="kg">kg</button></div>
       </div>
     </div>
-    <button class="btn" id="addPr">Save PR</button>
+    <button class="btn" id="addPr">Save lift</button>
 
     <div class="shdr"><span class="t">Best lifts</span></div>
     <div class="card" id="bestList"></div>
@@ -1459,9 +1463,9 @@ function renderGym(){
   }
   const bl=Object.values(best).sort((a,b)=>a.ex.localeCompare(b.ex));
   $("bestList").innerHTML=bl.length?bl.map(p=>
-    `<button class="cell" data-edit="${esc(p.id)}"><span class="cl">${esc(p.ex)}<br><span class="sub">${esc(short(p.date))}</span></span>
+    `<button class="cell" data-edit="${esc(p.id)}"><span class="cl">${esc(p.ex)}<span class="pr">PR</span><br><span class="sub">${esc(short(p.date))}</span></span>
      <span class="cv" style="color:var(--lab);font-weight:500">${p.w} ${esc(p.u)} × ${p.r}</span>${CHEV}</button>`).join("")
-    :`<p class="empty">Save your first PR above.</p>`;
+    :`<p class="empty">Save your first lift above.</p>`;
 
   const names=exNames();
   $("histLabel").textContent=histFilter?histFilter:"All";
@@ -1484,7 +1488,7 @@ $("unit").addEventListener("click",e=>{
 });
 $("prDate").addEventListener("click",async()=>{
   const k=await pickDate({
-    value:prDate,min:keyOf(addDays(new Date(),-365*10)),max:todayKey(),title:"Date of the PR"
+    value:prDate,min:keyOf(addDays(new Date(),-365*10)),max:todayKey(),title:"Date of the lift"
   });
   if(k){prDate=k;renderGym()}
 });
@@ -1550,7 +1554,7 @@ function openPrEditor(id){
   };
 
   const root=sheet({
-    title:"Edit PR",left:"Cancel",right:"Save",
+    title:"Edit lift",left:"Cancel",right:"Save",
     onRight:()=>{
       const ex=f("ex").value.trim(),w=+f("w").value,r=Math.round(+f("r").value);
       if(!ex)    {hud("Add an exercise",WARN);f("ex").focus();return false}
@@ -1559,12 +1563,12 @@ function openPrEditor(id){
       const t=S.meta.prs.find(x=>x.id===id);
       if(!t){hud("That entry is gone",WARN);return true}
       t.ex=ex;t.w=Math.round(w*100)/100;t.r=r;t.u=draft.u;t.date=draft.date;
-      schedule("meta");renderGym();haptic(10);hud("PR updated");
+      schedule("meta");renderGym();haptic(10);hud("Lift updated");
       return true;
     },
     build:(body,r)=>{
       body.appendChild(card);
-      const del=el("button","btn danger","Delete PR");
+      const del=el("button","btn danger","Delete lift");
       del.onclick=async()=>{
         const ok=await confirmBox("Delete this entry?",
           `${p.ex} · ${p.w} ${p.u} × ${p.r} on ${short(p.date)}`);
@@ -1581,7 +1585,7 @@ function openPrEditor(id){
       });
       a("date").addEventListener("click",async()=>{
         const k=await pickDate({
-          value:draft.date,min:keyOf(addDays(new Date(),-365*10)),max:todayKey(),title:"Date of the PR"
+          value:draft.date,min:keyOf(addDays(new Date(),-365*10)),max:todayKey(),title:"Date of the lift"
         });
         if(k){draft.date=k;paintDate()}
       });
@@ -1611,7 +1615,7 @@ function savePr(){
   });
   $("prEx").value=$("prW").value=$("prR").value="";
   prDate=todayKey();
-  schedule("meta");renderGym();haptic(12);hud("PR saved");
+  schedule("meta");renderGym();haptic(12);hud("Lift saved");
 }
 const WARN='<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9.2"/><path d="M12 7.4v6M12 16.4v.2"/></svg>';
 $("addPr").addEventListener("click",savePr);

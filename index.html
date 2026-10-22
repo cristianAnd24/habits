@@ -69,7 +69,16 @@
    Base
    ========================================================================== */
 *,*::before,*::after{box-sizing:inherit}
-html{height:100%;-webkit-text-size-adjust:100%}
+/* A thin, faint bar on a transparent track. The gutter is always reserved, so a
+   tab that scrolls and one that does not sit in the same place — the layout used
+   to jump sideways on every tab switch, and again whenever a sheet locked the
+   page. scrollbar-gutter does nothing where scrollbars overlay the content, so
+   iOS keeps its own transient indicator untouched. */
+html{height:100%;-webkit-text-size-adjust:100%;
+  scrollbar-width:thin;scrollbar-color:var(--f1) transparent}
+/* Only where a scrollbar actually occupies layout. Touch platforms overlay
+   theirs, and reserving a gutter there would leave a dead strip down the side. */
+@media (pointer:fine){html{scrollbar-gutter:stable}}
 body{margin:0;min-height:100%;background:var(--bg);color:var(--lab);
   font:400 17px/1.29 var(--sans);letter-spacing:-.01em;
   -webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;
@@ -411,7 +420,7 @@ button.cell:active,.tap:active{background:var(--f4)}
 .menu-ov{pointer-events:none}
 .menu-ov .ov-back{pointer-events:auto}
 .menu{position:absolute;min-width:232px;max-width:min(300px,calc(100vw - 24px));
-  border-radius:13px;overflow:hidden auto;max-height:min(420px,calc(100vh - 40px));
+  border-radius:13px;overflow:hidden auto;max-height:min(420px,calc(100vh - 40px));scrollbar-width:thin;
   background:var(--glass);-webkit-backdrop-filter:blur(28px) saturate(180%);
   backdrop-filter:blur(28px) saturate(180%);box-shadow:var(--pop);pointer-events:auto;
   opacity:0;transform:scale(.86);-webkit-overflow-scrolling:touch;

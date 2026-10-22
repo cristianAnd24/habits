@@ -700,9 +700,9 @@ let cur=todayKey();
    a clean day. Adding one here wires up its Today section, streaks and Stats;
    days saved before it existed read as null, so they stay unrecorded. */
 const TRACKED=[
-  {key:"clean",   title:"Stayed clean",    label:"Slips today", days:"Clean days",         total:"Total slips"},
-  {key:"weed",    title:"Stayed off weed", label:"Times today", days:"Weed-free days",     total:"Total times"},
-  {key:"caffeine",title:"Caffeine",        label:"Drinks today",days:"Caffeine-free days", total:"Total drinks"}
+  {key:"clean",   title:"Stayed clean",    label:"Slips today", days:"Clean days",         perDay:"Slips per day"},
+  {key:"weed",    title:"Stayed off weed", label:"Times today", days:"Weed-free days",     perDay:"Times per day"},
+  {key:"caffeine",title:"Caffeine",        label:"Drinks today",days:"Caffeine-free days", perDay:"Drinks per day"}
 ];
 const MAX_COUNT=99;
 function blankDay(){
@@ -1606,7 +1606,7 @@ function renderStats(){
     const{zero,sum}=tally[h.key],c=currentStreak(h.key),r=streakRuns(h.key);
     $(h.key+"Stats").innerHTML=[
       [h.days,pct(zero,n),`${zero} of ${n}`],
-      [h.total,String(sum),`${r1(sum/n)} per day`],
+      [h.perDay,String(r1(sum/n))],
       ["Current streak",dayCount(c)],
       ["Longest streak",dayCount(r.best),r.runs>1?`avg ${dayCount(r1(r.avg))}`:""]
     ].map(tile).join("");

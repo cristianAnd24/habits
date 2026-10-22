@@ -827,54 +827,144 @@ function logged(k){
 }
 
 /* ==========================================================================
-   Storage: phone copy + private account copy
+   Storage: this device, plus an optional synced copy
+   --------------------------------------------------------------------------
+   Supabase over plain fetch rather than its SDK, so the app stays a single file
+   with no third-party script to cache or to trust. Sign-in uses an emailed code
+   rather than a magic link, because a link opens Safari — not the installed
+   app — which would break the flow on the one device this is for.
+
+   The publishable key below is meant to be public; row-level security is what
+   keeps the data private, so each account can only ever read its own row.
    ========================================================================== */
-let db=null,uid=null;
-const timers={},inflight={},queued={};
+let SB_URL="";   /* https://<project>.supabase.co */
+let SB_KEY="";   /* publishable (anon) key */
+const TABLE="habits_state";
+const SESSION_KEY="daily-habits-session";
+const syncConfigured=()=>!!(SB_URL&&SB_KEY);
+
+let session=null;
+try{const r=localStorage.getItem(SESSION_KEY);if(r)session=JSON.parse(r)}catch(e){}
+const signedIn=()=>!!(session&&session.access_token&&session.user);
+function saveSession(s){
+  session=s;
+  try{s?localStorage.setItem(SESSION_KEY,JSON.stringify(s)):localStorage.removeItem(SESSION_KEY)}catch(e){}
+}
 function saveLocal(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
+
 function setSync(state){
   const n=$("sync");
   if(!state){n.classList.add("hidden");n.textContent="";return}
   n.classList.remove("hidden");
-  n.innerHTML=`<i style="background:var(--${state==="off"?"red":"green"})"></i>${state==="off"?"Offline":"Synced"}`;
+  const tone=state==="off"?"red":state==="saving"?"lab3":"green";
+  const word=state==="off"?"Offline":state==="saving"?"Saving":"Synced";
+  n.innerHTML=`<i style="background:var(--${tone})"></i>${word}`;
 }
-function schedule(kind,k){
-  saveLocal();if(!db||!uid)return;
-  const id=kind==="meta"?"meta":"d:"+k;
-  clearTimeout(timers[id]);timers[id]=setTimeout(()=>push(kind,k),500);
+
+/* ---- transport ---- */
+async function sbFetch(path,opts,isRetry){
+  const o=opts||{};
+  const headers=Object.assign({apikey:SB_KEY,"Content-Type":"application/json"},
+    signedIn()?{Authorization:"Bearer "+session.access_token}:{},o.headers||{});
+  const r=await fetch(SB_URL+path,Object.assign({},o,{headers}));
+  /* One silent refresh, then give up rather than loop. */
+  if(r.status===401&&signedIn()&&!isRetry&&await refreshSession())return sbFetch(path,opts,true);
+  return r;
 }
-async function push(kind,k){
-  const id=kind==="meta"?"meta":"d:"+k;
-  if(inflight[id]){queued[id]=true;return}
-  inflight[id]=true;
+async function refreshSession(){
+  if(!session||!session.refresh_token)return false;
   try{
-    if(kind==="meta")await db.doc(`data/users/${uid}/meta`).set(JSON.parse(JSON.stringify(S.meta)));
-    else await db.doc(`data/users/${uid}/profile`).collection("days").doc(k).set(JSON.parse(JSON.stringify(day(k))));
-    setSync(null);
-  }catch(e){
-    if(e&&e.code==="unavailable")setTimeout(()=>push(kind,k),800+Math.random()*800);
-    else setSync("off");
-  }finally{inflight[id]=false;if(queued[id]){queued[id]=false;push(kind,k)}}
+    const r=await fetch(`${SB_URL}/auth/v1/token?grant_type=refresh_token`,{
+      method:"POST",headers:{apikey:SB_KEY,"Content-Type":"application/json"},
+      body:JSON.stringify({refresh_token:session.refresh_token})});
+    if(!r.ok){saveSession(null);return false}
+    saveSession(await r.json());
+    return true;
+  }catch(e){return false}
+}
+const sbError=async r=>{
+  try{const j=await r.json();return j.msg||j.error_description||j.message||"Something went wrong"}
+  catch(e){return "Something went wrong"}
+};
+
+/* ---- sign in with an emailed code ---- */
+async function sendCode(email){
+  const r=await fetch(`${SB_URL}/auth/v1/otp`,{method:"POST",
+    headers:{apikey:SB_KEY,"Content-Type":"application/json"},
+    body:JSON.stringify({email,create_user:true})});
+  if(!r.ok)throw new Error(await sbError(r));
+}
+async function verifyCode(email,token){
+  const r=await fetch(`${SB_URL}/auth/v1/verify`,{method:"POST",
+    headers:{apikey:SB_KEY,"Content-Type":"application/json"},
+    body:JSON.stringify({type:"email",email,token})});
+  if(!r.ok)throw new Error(await sbError(r));
+  saveSession(await r.json());
+}
+function signOut(){saveSession(null);setSync(null);renderAll()}
+
+/* ---- merge ----
+   Nothing is ever dropped: days are unioned, and where both sides hold the same
+   date the fuller record wins, local breaking ties. Lists are unioned by id, so
+   a lift saved on one device cannot be erased by the other. The cost is that a
+   deletion made on one device can come back from the other. For a log whose job
+   is to survive, resurrecting an entry beats losing one. */
+function dayWeight(d){
+  const x=Object.assign(blankDay(),d||{});
+  const p=Array.isArray(x.prayers)?x.prayers.filter(Boolean).length:0;
+  return p+(+x.quran>0?1:0)+(x.gym?1:0)+TRACKED.filter(h=>countOf(h.key,"",x)>0).length;
+}
+function mergeState(a,b){
+  a=a||{};b=b||{};
+  const ad=a.days||{},bd=b.days||{};
+  const out={days:{},meta:Object.assign(META0(),b.meta||{},a.meta||{})};
+  for(const k of new Set([...Object.keys(ad),...Object.keys(bd)])){
+    const x=ad[k],y=bd[k];
+    out.days[k]= !x?y : !y?x : (dayWeight(x)>=dayWeight(y)?x:y);
+  }
+  const prs=new Map();
+  for(const p of ((b.meta||{}).prs||[]))if(p&&p.id)prs.set(p.id,p);
+  for(const p of ((a.meta||{}).prs||[]))if(p&&p.id)prs.set(p.id,p);
+  out.meta.prs=[...prs.values()];
+  out.meta.surahs=[...new Set([...(((b.meta||{}).surahs)||[]),...(((a.meta||{}).surahs)||[])])]
+    .filter(n=>typeof n==="number").sort((x,y)=>x-y);
+  out.meta.rounds=Math.max(((a.meta||{}).rounds)||0,((b.meta||{}).rounds)||0);
+  return out;
+}
+
+/* ---- pull / push ---- */
+async function pullRemote(){
+  const r=await sbFetch(`/rest/v1/${TABLE}?select=data&limit=1`,{method:"GET"});
+  if(!r.ok)throw new Error(await sbError(r));
+  const rows=await r.json();
+  return rows.length?rows[0].data:null;
+}
+let pushTimer=null,pushing=false,pushAgain=false;
+async function pushRemote(){
+  if(!syncConfigured()||!signedIn())return;
+  if(pushing){pushAgain=true;return}
+  pushing=true;setSync("saving");
+  try{
+    const r=await sbFetch(`/rest/v1/${TABLE}?on_conflict=user_id`,{method:"POST",
+      headers:{Prefer:"resolution=merge-duplicates,return=minimal"},
+      body:JSON.stringify({user_id:session.user.id,data:S,updated_at:new Date().toISOString()})});
+    setSync(r.ok?"on":"off");
+  }catch(e){setSync("off")}
+  finally{pushing=false;if(pushAgain){pushAgain=false;pushRemote()}}
+}
+/* Called by every edit. Saves locally first, always — the network is a bonus. */
+function schedule(){
+  saveLocal();
+  if(!syncConfigured()||!signedIn())return;
+  clearTimeout(pushTimer);pushTimer=setTimeout(pushRemote,1200);
 }
 async function connect(){
-  if(!window.claude||!window.claude.use)return;
+  if(!syncConfigured()||!signedIn()){setSync(null);return}
+  setSync("saving");
   try{
-    const[d,u]=await Promise.all([window.claude.use("db"),window.claude.use("user")]);
-    if(!d||!u)return;
-    const id=await u.id();if(!id)return;
-    db=d;uid=id;
-    const[m,ds]=await Promise.all([
-      db.doc(`data/users/${uid}/meta`).get(),
-      db.doc(`data/users/${uid}/profile`).collection("days").get()
-    ]);
-    const localHas=Object.keys(S.days).length||S.meta.surahs.length||S.meta.prs.length;
-    if(!m.exists&&ds.empty&&localHas){push("meta");for(const k of Object.keys(S.days))push("day",k)}
-    else{
-      if(m.exists)S.meta=Object.assign(META0(),JSON.parse(JSON.stringify(m.data())));
-      for(const doc of ds.docs)S.days[doc.id]=JSON.parse(JSON.stringify(doc.data()));
-      saveLocal();
-    }
-    applyTheme();renderAll();
+    const remote=await pullRemote();
+    if(remote){S=mergeState(S,remote);saveLocal();applyTheme();renderAll()}
+    await pushRemote();
   }catch(e){setSync("off")}
 }
 
@@ -1855,6 +1945,7 @@ async function openDataSheet(){
     title:"Data",left:"Close",
     build:(body,root)=>{
       const rows=[
+        ...(syncConfigured()?[["Sync",signedIn()?session.user.email:"Off"]]:[]),
         ["Kept on this device",persisted===true?"Protected":persisted===false?"Best effort":"Unknown"],
         ["Opened from home screen",installed?"Yes":"No"],
         ["Days logged",String(Object.keys(S.days).length)],
@@ -1877,13 +1968,76 @@ async function openDataSheet(){
         "To install it: open this page in <b>Safari</b>, tap Share, then Add to Home Screen, and "+
         "launch it from the icon. Storage does not carry across, so export a backup first and "+
         "restore it once installed."));
-      const ex=el("button","btn","Export backup");
+      if(syncConfigured()){
+        const sy=el("button","btn"+(signedIn()?" ghost":""),
+          signedIn()?"Stop syncing":"Turn on sync");
+        sy.onclick=()=>{root.close();setTimeout(openSyncSheet,420)};
+        body.appendChild(sy);
+      }
+      const ex=el("button","btn"+(syncConfigured()?" ghost":""),"Export backup");
       ex.onclick=()=>{exportBackup();root.close()};
       const im=el("button","btn ghost","Restore from a file");
       im.onclick=()=>{importBackup();root.close()};
       body.append(ex,im);
     }
   });
+}
+
+/* Sign in, or out, from the Data sheet. Two steps in one sheet: ask for the
+   email, then for the code that arrives. */
+function openSyncSheet(){
+  if(signedIn()){
+    confirmBox("Stop syncing?",
+      `${session.user.email} will be signed out on this device. Your log stays here, and the synced copy is left untouched.`,
+      "Sign out").then(ok=>{if(ok){signOut();hud("Signed out")}});
+    return;
+  }
+  let step="email",email="";
+  const root=sheet({
+    title:"Sync",left:"Cancel",
+    build:(body,r)=>{
+      const card=el("div","card");
+      const foot=el("p","foot","");
+      const go=el("button","btn","Send me a code");
+      const render=()=>{
+        card.innerHTML=step==="email"
+          ? `<div class="cell"><span class="cl" style="flex:0 0 auto">Email</span>
+               <input class="cin" id="syncEmail" type="email" inputmode="email"
+                 autocomplete="email" placeholder="you@example.com" aria-label="Email"></div>`
+          : `<div class="cell"><span class="cl" style="flex:0 0 auto">Code</span>
+               <input class="cin" id="syncCode" inputmode="numeric" autocomplete="one-time-code"
+                 placeholder="123456" aria-label="Six digit code"></div>`;
+        foot.textContent=step==="email"
+          ? "We email you a six digit code. No password, and no link to open — a link would land in Safari rather than here."
+          : `Enter the code sent to ${email}.`;
+        go.textContent=step==="email"?"Send me a code":"Sign in";
+        const i=card.querySelector("input");
+        if(i){i.value="";setTimeout(()=>i.focus(),60)}
+      };
+      const submit=async()=>{
+        const v=(card.querySelector("input")||{}).value||"";
+        if(step==="email"){
+          if(!/^\S+@\S+\.\S+$/.test(v.trim())){hud("Check the email",WARN);return}
+          email=v.trim();go.disabled=true;go.textContent="Sending…";
+          try{await sendCode(email);step="code";render()}
+          catch(e){hud(e.message,WARN)}
+          finally{go.disabled=false}
+        }else{
+          if(!/^\d{6}$/.test(v.trim())){hud("Six digits",WARN);return}
+          go.disabled=true;go.textContent="Signing in…";
+          try{
+            await verifyCode(email,v.trim());
+            r.close();hud("Syncing");await connect();renderAll();
+          }catch(e){hud(e.message,WARN);go.disabled=false;go.textContent="Sign in"}
+        }
+      };
+      go.onclick=submit;
+      card.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();submit()}});
+      body.append(card,foot,go);
+      render();
+    }
+  });
+  return root;
 }
 
 /* Once per launch, and only when there is something to lose. */

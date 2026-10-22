@@ -771,6 +771,13 @@ const STEP_SVG='<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stro
 const MINUS=STEP_SVG+'M5 12h14"/></svg>';
 const PLUS=STEP_SVG+'M12 5v14M5 12h14"/></svg>';
 const clampNum=(v,lo,hi)=>Math.min(hi,Math.max(lo,v));
+/* Minutes as "40m", "2h" or "1h20" -- no space, because the counter it has to
+   sit inside is 52px wide on a small phone. */
+function hm(m){
+  m=Math.round(m);if(!m)return "0";
+  const h=Math.floor(m/60),r=m%60;
+  return h?(r?h+"h"+String(r).padStart(2,"0"):h+"h"):r+"m";
+}
 
 let cur=todayKey();
 /* Counted habits. Each day holds null (nothing recorded) or a count, where 0 is
@@ -779,10 +786,11 @@ let cur=todayKey();
 const TRACKED=[
   {key:"clean",   icon:"shield",tone:"tint", title:"Stayed clean",    label:"Slips today", days:"Clean days",     perDay:"Slips per day"},
   {key:"weed",    icon:"leaf",  tone:"green",title:"Stayed off weed", label:"Times today", days:"Weed-free days", perDay:"Times per day"},
-  /* Stored in minutes so half hours stay whole numbers; shown as hours. */
-  {key:"instagram",icon:"camera",tone:"pink",title:"Instagram",      label:"Hours today",  days:"Days off it",      perDay:"Hours per day",
-   step:30, max:24*60, fmt:m=>m?(Math.round(m/60*10)/10)+"h":"0",
-   adds:[{d:30,text:".5",label:"half an hour"},{d:60,text:"1",label:"an hour"}]},
+  /* Stored in minutes, counted in tens of them, and shown as h/m rather than a
+     decimal -- 10 minutes is "10m", not "0.2h". */
+  {key:"instagram",icon:"camera",tone:"pink",title:"Instagram",      label:"Time today",   days:"Days off it",      perDay:"Time per day",
+   step:10, max:24*60, one:"10 min", fmt:hm,
+   adds:[{d:10,label:"ten minutes"}]},
   {key:"caffeine",icon:"cup",   tone:"brown",title:"Caffeine",        label:"Units today",  days:"Caffeine-free days",perDay:"Caffeine per day",
    adds:[{d:1,text:"1",label:"a coffee"},{d:2,text:"2",label:"an energy drink"}]},
   /* A dose, not a tally: stored in mg and stepped 10 at a time, so one step is

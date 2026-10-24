@@ -1965,8 +1965,10 @@ function readBackup(parsed){
 function applyBackup(state){
   S={days:state.days,meta:state.meta};
   saveLocal();applyTheme();
-  if(db&&uid){push("meta");for(const k of Object.keys(S.days))push("day",k)}
   cur=todayKey();showTab("today");refreshBadge();
+  /* Merge with the synced copy rather than overwrite it: the server may hold
+     days this backup predates. connect() pulls, merges, then pushes. */
+  if(syncOn())connect();
 }
 function importBackup(){
   const inp=el("input");inp.type="file";inp.accept="application/json,.json";

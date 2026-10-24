@@ -1,6 +1,6 @@
 /* Daily - offline app shell.
    Bump CACHE whenever this file changes to force installed devices onto it. */
-const CACHE = "daily-v2";
+const CACHE = "daily-v3";
 const PAGE = "./index.html";
 const SHELL = [
   "./", PAGE, "./manifest.webmanifest",
@@ -39,9 +39,12 @@ self.addEventListener("fetch", e => {
   if (new URL(req.url).origin !== self.location.origin) return;
 
   /* The page itself: network first, so a published update is live immediately.
-     Falls back to cache the moment the network fails or stalls. */
+     Falls back to cache the moment the network fails or stalls. no-cache makes
+     the browser revalidate rather than answer from its HTTP cache, which
+     GitHub Pages allows for ten minutes; unchanged, that costs a 304. */
   if (req.mode === "navigate") {
-    const net = fetch(req).then(res => put(PAGE, res)).catch(() => null);
+    const net = fetch(req.url, { cache: "no-cache", credentials: "same-origin" })
+      .then(res => put(PAGE, res)).catch(() => null);
     e.waitUntil(net);
     e.respondWith(
       Promise.race([
